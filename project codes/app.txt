@@ -1,0 +1,212 @@
+import os
+import re
+import string
+from unittest import result
+import pandas as pd
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+
+# --- 1. NLTK RESOURCE SETUP ---
+def download_nltk_resources():
+    resources = ['punkt', 'punkt_tab', 'stopwords', 'wordnet', 'omw-1.4']
+    for res in resources:
+        try:
+            nltk.data.find(res)
+        except LookupError:
+            print(f"Downloading missing NLTK resource: {res}")
+            nltk.download(res)
+
+download_nltk_resources()
+
+# --- 2. IMPORTS & CONFIGURATION ---
+from model_utils import SENTIMENT_MODEL 
+from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads' 
+app.config['SECRET_KEY'] = 'your_strong_secret_key' 
+ALLOWED_EXTENSIONS = {'csv'}
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# --- 3. GLOBAL USER SETUP ---
+USERS = {} 
+USER_ID_COUNTER = 1
+
+class User(UserMixin):
+    def __init__(self, id, username, password_hash):
+        self.id = id
+        self.username = username
+        self.password = password_hash
+    def get_id(self):
+        return str(self.id)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    for user in USERS.values():
+        if user.id == int(user_id):
+            return user
+    return None
+
+# --- 4. DATA PREPROCESSING (Refined for Accuracy) ---
+try:
+    STOP_WORDS = set(stopwords.words('english'))
+    # Keeping negation words prevents "not good" from being read as "good"
+    NEGATION_WORDS = {'not', 'no', 'never', 'neither', 'nor', 'none', 'but', 'only'}
+    FILTERED_STOPWORDS = STOP_WORDS - NEGATION_WORDS
+except LookupError:
+    FILTERED_STOPWORDS = set()
+
+PUNCTUATION = string.punctuation
+
+def preprocess_text(text):
+    if pd.isna(text) or text is None:
+        return ""
+    text = str(text).lower()
+    text = re.sub(r'<.*?>', '', text) 
+    text = re.sub(r'https?://\S+|www\.\S+', '', text) 
+    text = text.translate(str.maketrans('', '', PUNCTUATION)) 
+    words = word_tokenize(text)
+    words = [word for word in words if word not in FILTERED_STOPWORDS and len(word) > 1]
+    return " ".join(words)
+
+# --- 5. SENTIMENT ANALYSIS LOGIC ---
+def analyze_sentiment(df):
+    # Get predictions from your model
+    predictions = SENTIMENT_MODEL.predict(df['preprocessed_review'])
+    
+    # Force the labels to be title-case to match the HTML logic
+    df['sentiment'] = [str(p).strip().capitalize() for p in predictions]
+    
+    total_reviews = len(df)
+    counts = df['sentiment'].value_counts().to_dict()
+    
+    # Ensure keys exist with correct capitalization
+    sentiment_counts = {
+        'Positive': counts.get('Positive', 0),
+        'Negative': counts.get('Negative', 0),
+        'Neutral': counts.get('Neutral', 0)
+    }
+    
+    # ... rest of your results logic ...
+    return result, df
+# --- 6. ROUTES ---
+
+@app.route('/')
+def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    global USER_ID_COUNTER
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if not username or not password:
+            flash('Username and password are required.', 'error')
+            return redirect(url_for('register'))
+        if username in USERS:
+            flash('Username already exists.', 'error')
+            return redirect(url_for('register'))
+        hashed_password = generate_password_hash(password)
+        new_user = User(USER_ID_COUNTER, username, hashed_password)
+        USERS[username] = new_user
+        USER_ID_COUNTER += 1
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = USERS.get(username)
+        if user and check_password_hash(user.password, password): 
+            login_user(user) 
+            return redirect(url_for('dashboard'))
+        flash('Invalid username or password', 'error') 
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required 
+def dashboard():
+    return render_template('dashboard.html', username=current_user.username)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'
+
+@app.route('/upload_file', methods=['POST'])
+@login_required
+def upload_file():
+    session.pop('analysis_data', None)
+    if 'csv_file' not in request.files:
+        return redirect(url_for('dashboard'))
+
+    file = request.files['csv_file']
+    if file.filename == '' or not allowed_file(file.filename):
+        return redirect(url_for('dashboard'))
+
+    try:
+        df = pd.read_csv(file)
+        REVIEW_COLUMN = 'Review_Text' 
+        
+        if REVIEW_COLUMN not in df.columns:
+            flash(f"Error: CSV must contain a column named '{REVIEW_COLUMN}'.", 'error')
+            return redirect(url_for('dashboard'))
+        
+        df['preprocessed_review'] = df[REVIEW_COLUMN].apply(preprocess_text)
+        results, df_analyzed = analyze_sentiment(df)
+        
+        # Prepare table and JSON for download
+        review_list = df_analyzed[['Review_Text', 'preprocessed_review', 'sentiment']].head(15).to_dict('records')
+        full_data_json = df_analyzed.to_json()
+        
+        response = make_response(render_template('analysis_report.html', 
+                                               results=results, 
+                                               username=current_user.username,
+                                               filename=file.filename,
+                                               review_data=review_list,
+                                               full_data_json=full_data_json))
+        
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return render_template('analysis_report.html', 
+                       results=results, 
+                       review_data=review_list, # This name must match the loop in HTML
+                       full_data_json=df_analyzed.to_json())
+
+    except Exception as e:
+        flash(f'An error occurred: {e}', 'error')
+        return redirect(url_for('dashboard'))
+
+@app.route('/download_report', methods=['POST'])
+@login_required
+def download_report():
+    data_json = request.form.get('full_data_json')
+    if not data_json:
+        return redirect(url_for('dashboard'))
+    df = pd.read_json(data_json)
+    csv_data = df.to_csv(index=False)
+    response = make_response(csv_data)
+    response.headers["Content-Disposition"] = "attachment; filename=sentiment_report.csv"
+    response.headers["Content-type"] = "text/csv"
+    return response
+
+if __name__ == '__main__':
+    app.run(debug=True)

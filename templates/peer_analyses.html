@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}Peer Analyst Network{% endblock %}
+
+{% block content %}
+<style>
+    .peer-container {
+        max-width: 1400px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+    
+    .network-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 20px;
+        margin-bottom: 40px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.25);
+    }
+    
+    .network-header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 800;
+    }
+    
+    .network-header p {
+        margin: 10px 0 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+    
+    .stat-card h3 {
+        color: #667eea;
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 800;
+    }
+    
+    .stat-card p {
+        color: #636e72;
+        margin: 10px 0 0;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .filter-section {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .search-box {
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 12px 20px;
+        border: 2px solid #dfe6e9;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: 0.3s;
+    }
+    
+    .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .analysts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+    }
+    
+    .analyst-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .analyst-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .analyst-card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px 25px;
+        color: white;
+        text-align: center;
+    }
+    
+    .analyst-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+    
+    .analyst-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .analyst-card-body {
+        padding: 25px;
+    }
+    
+    .analyst-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f2f6;
+    }
+    
+    .analyst-stat:last-child {
+        border-bottom: none;
+    }
+    
+    .analyst-stat-label {
+        color: #636e72;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .analyst-stat-value {
+        color: #667eea;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+    
+    .badge {
+        display: inline-block;
+        background: #f1f2f6;
+        color: #667eea;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 5px 5px 5px 0;
+    }
+    
+    .view-profile-btn {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.3s;
+        margin-top: 15px;
+    }
+    
+    .view-profile-btn:hover {
+        transform: scale(1.02);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #636e72;
+    }
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state h3 {
+        color: #2d3436;
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+</style>
+
+<div class="peer-container">
+    <!-- Header -->
+    <div class="network-header">
+        <h1>👥 Peer Analyst Network</h1>
+        <p>Discover insights and analyses from your analyst peers across the organization</p>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <h3>{{ total_analysts }}</h3>
+            <p>Active Analysts</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ analyst_data | length }}</h3>
+            <p>Sharing Analyses</p>
+        </div>
+        <div class="stat-card">
+            <h3>
+                {% set total_shared = 0 %}
+                {% for analyst_id, data in analyst_data.items() %}
+                    {% set total_shared = total_shared + data.total_analyses %}
+                {% endfor %}
+                {{ total_shared }}
+            </h3>
+            <p>Shared Projects</p>
+        </div>
+    </div>
+    
+    <!-- Search & Filter -->
+    <div class="filter-section">
+        <div class="search-box">
+            <input type="text" id="searchAnalysts" placeholder="🔍 Search analysts by name..." 
+                   onkeyup="filterAnalysts()">
+        </div>
+    </div>
+    
+    <!-- Analysts Grid -->
+    {% if analyst_data %}
+    <div class="analysts-grid">
+        {% for analyst_id, data in analyst_data.items() %}
+        <div class="analyst-card" data-analyst-name="{{ data.analyst.username.lower() }}">
+            <div class="analyst-card-header">
+                <div class="analyst-avatar">
+                    {{ data.analyst.username[0].upper() }}
+                </div>
+                <h3 class="analyst-name">{{ data.analyst.username }}</h3>
+            </div>
+            
+            <div class="analyst-card-body">
+                <div class="analyst-stat">
+                    <span class="analyst-stat-label">📊 Analyses</span>
+                    <span class="analyst-stat-value">{{ data.total_analyses }}</span>
+                </div>
+                
+                <div class="analyst-stat">
+                    <span class="analyst-stat-label">⭐ Avg Sentiment</span>
+                    <span class="analyst-stat-value">{{ data.avg_sentiment }}%</span>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <p style="color: #636e72; font-size: 0.85rem; text-transform: uppercase; font-weight: 600; margin-bottom: 10px;">Expertise Areas</p>
+                    {% for product in data.products[:3] %}
+                    <span class="badge">{{ product.name.split()[0] }}</span>
+                    {% endfor %}
+                </div>
+                
+                <button class="view-profile-btn" 
+                        data-analyst-id="{{ analyst_id }}"
+                        onclick="goToProfile(this)">
+                    View Profile & Analyses
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <h3>No Shared Analyses Yet</h3>
+        <p>Your peers haven't shared any analyses yet. Check back soon or encourage them to share their work!</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function filterAnalysts() {
+    const searchTerm = document.getElementById('searchAnalysts').value.toLowerCase();
+    const cards = document.querySelectorAll('.analyst-card');
+    
+    cards.forEach(card => {
+        const analystName = card.dataset.analystName;
+        if (analystName.includes(searchTerm)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function goToProfile(button) {
+    const analystId = button.getAttribute('data-analyst-id');
+    window.location.href = '/analyst/' + analystId;
+}
+</script>
+{% endblock %}

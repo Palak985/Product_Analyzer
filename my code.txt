@@ -1,0 +1,836 @@
+base
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Review Intelligence{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #b388eb;
+            --dark-purple: #9a66d4;
+            --bg-light: #f4f7f9;
+            --white: #ffffff;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navigation Bar */
+        nav {
+            background-color: var(--white);
+            padding: 15px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--primary-purple);
+            text-decoration: none;
+        }
+
+        .nav-links a {
+            margin-left: 20px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 400;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-purple);
+        }
+
+        /* Flash Message Styling */
+        .error-message {
+            color: #ff6b6b;
+            background: #fff5f5;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ff6b6b;
+            margin-bottom: 15px;
+        }
+
+        /* Shared Button Styles */
+        .btn {
+            border-radius: 8px;
+            transition: 0.3s all ease;
+            cursor: pointer;
+            border: none;
+            display: inline-block;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .primary-btn {
+            background-color: var(--primary-purple);
+            color: white;
+            padding: 12px 20px;
+        }
+
+        .primary-btn:hover {
+            background-color: var(--dark-purple);
+            transform: translateY(-2px);
+        }
+
+        main {
+            flex: 1;
+            padding-bottom: 50px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 12px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            background: #b3afff;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .history-link {
+            font-size: 14px;
+            text-decoration: none;
+            color: #6c63ff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            
+            border: 1px solid #ddd;
+        }
+
+        .history-link:hover {
+            background: #f4f3ff;
+        }
+
+        .badge {
+            background: #6c63ff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+        .logo {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: #ffffff;
+    padding: 10px 22px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.2rem;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.logo:hover {
+    background: linear-gradient(135deg, #5a4bd8, #8c7ae6);
+    transform: translateY(-2px);
+}
+.nav-link {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: #ffffff;
+    padding: 8px 18px;
+    border-radius: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.nav-link:hover {
+    opacity: 0.9;
+}
+.logout-link {
+    background: #ffecec;
+    color: #c0392b;
+    padding: 8px 18px;
+    border-radius: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+
+.logout-link:hover {
+    background: #ffd6d6;
+    color: #a93226;
+    transform: translateY(-1px);
+}
+
+
+
+
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('index') }}" class="logo" style="background-color: #b3afff;">💜 ReviewAI</a>
+        <div class="nav-links">
+            {% if current_user.is_authenticated %}
+                
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+
+                <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Sign Up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% if current_user.is_authenticated %}
+    <div class="header-bar">
+        <h1>Product Review <span color: #a29bfe>Analyzer</span></h1>
+        <a href="{{ url_for('dashboard') }}" class="history-link">
+            📜 Analysis History 
+            <span class="badge">{{ history_count if history_count else 0 }}</span>
+        </a>
+    </div>
+    {% endif %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+
+</body>
+</html>
+
+
+analysis
+{% extends "base.html" %}
+{% block title %}Analysis Report{% endblock %}
+
+{% block content %}
+<div class="report-wrapper" style="display:flex; flex-wrap:wrap; gap:30px; max-width:1200px; margin:40px auto; padding:0 20px; font-family:Poppins,sans-serif;">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="report-sidebar" style="flex:1; min-width:280px; max-width:350px; display:flex; flex-direction:column; gap:20px;">
+        <div class="summary-card" style="background:white; border-radius:20px; padding:30px; text-align:center; border:1px solid #f1f2f6;">
+            <div class="verdict-title" style="font-size:0.9rem; text-transform:uppercase; color:#636e72;">AI Verdict</div>
+            <div class="verdict-value" style="font-size:1.8rem; font-weight:700; color:#2d3436;">{{ results.recommendation }}</div>
+
+            <div class="score-circle" style="width:120px; height:120px; border-radius:50%; margin:20px auto; display:flex; align-items:center; justify-content:center; position:relative;">
+                <div class="score-inner" style="width:100px; height:100px; background:white; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                    <div class="score-number" style="font-size:1.5rem; font-weight:bold; color:#6c5ce7;">{{ results.positive_percent }}%</div>
+                    <div class="score-label" style="font-size:0.7rem; color:#b2bec3;">Positive</div>
+                </div>
+            </div>
+
+            <div class="stat-row" style="display:flex; justify-content:space-between; margin-top:20px; padding-top:20px; border-top:1px solid #f1f2f6;">
+                <div class="stat-item">
+                    <h5 style="margin:0; color:#636e72; font-size:0.8rem;">Total Reviews</h5>
+                    <h3 style="margin:5px 0 0; color:#2d3436;">{{ results.total_reviews }}</h3>
+                </div>
+                <div class="stat-item">
+                    <h5 style="margin:0; color:#636e72; font-size:0.8rem;">Dominant</h5>
+                    <h3 style="margin:5px 0 0; color:#6c5ce7;">{{ results.dominant_sentiment }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <form action="{{ url_for('download_report') }}" method="POST">
+                <button type="submit" style="display:block;width:100%;padding:12px;border-radius:12px;text-align:center;font-weight:600;margin-top:10px;border:none;cursor:pointer;background:#6c5ce7;color:white;">
+                    <i class="fas fa-download"></i> Download Report
+                </button>
+            </form>
+            <a href="{{ url_for('dashboard') }}" style="display:block;width:100%;padding:12px;border-radius:12px;text-align:center;text-decoration:none;font-weight:600;margin-top:15px;background:#dfe6e9;color:#636e72;">Back to Dashboard</a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="report-main" style="flex:3; min-width:300px; display:flex; flex-direction:column; gap:25px;">
+        <!-- Sentiment Pie Chart -->
+        <div class="card" style="background:white; border-radius:16px; padding:20px; border:1px solid #f1f2f6;">
+            <h4 style="text-align:center; margin-bottom:15px; color:#2d3436;">Sentiment Split</h4>
+            <div style="height:250px;">
+                <canvas id="pieChart"></canvas>
+            </div>
+            <p style="text-align:center; font-size:0.8rem; margin-top:10px;">Click a slice to filter table</p>
+        </div>
+
+        <!-- Trend Chart -->
+        <div class="card" style="background:white; border-radius:16px; padding:20px; border:1px solid #f1f2f6;">
+            <h4 style="text-align:center; margin-bottom:15px; color:#2d3436;">Trend of Reviews</h4>
+            <div style="height:250px;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Review Table -->
+       <!-- Review Table -->
+<div class="card" style="background:white; border-radius:16px; padding:20px; border:1px solid #f1f2f6;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0; color:#2d3436;">Review Details</h3>
+        <button id="showAllBtn" style="display:none; background:#a29bfe;color:white;border:none;padding:5px 15px;border-radius:20px;cursor:pointer;font-size:0.8rem;">Reset Filter ✕</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table id="reviewTable" style="width:100%; border-collapse:collapse; min-width:600px;">
+            <thead>
+                <tr style="background:#f1f2f6;">
+                    <th style="padding:12px; text-align:center; width:50px;">#</th>
+                    <th style="padding:12px; text-align:left;">Review Content</th>
+                    <th style="padding:12px; text-align:center; width:120px;">Sentiment</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in review_data %}
+                <tr class="review-row" data-sentiment="{{ row.sentiment }}">
+                    <td style="padding:12px; text-align:center;">{{ loop.index }}</td>
+                    <td class="review-text-cell" data-review="{{ row.Review_Text }}" data-sentiment="{{ row.sentiment }}">
+                        {{ row.Review_Text | truncate(60) }} <!-- show short snippet -->
+                    </td>
+                    <td style="padding:12px; text-align:center;">
+                        <span class="sm-badge 
+                            {% if row.sentiment == 'Positive' %}sm-pos
+                            {% elif row.sentiment == 'Negative' %}sm-neg
+                            {% else %}sm-neu{% endif %}" 
+                            style="padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; text-transform:uppercase;">
+                            {{ row.sentiment }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Popup -->
+<div id="reviewModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center;">
+    <div style="background:white; max-width:600px; width:90%; padding:30px; border-radius:16px; position:relative;">
+        <span id="closeModal" style="position:absolute; top:15px; right:20px; cursor:pointer; font-size:1.5rem;">&times;</span>
+        <h3 id="modalSentiment" style="margin-bottom:15px;"></h3>
+        <p id="modalText" style="white-space:pre-wrap;"></p>
+    </div>
+</div>
+
+
+<!-- Hidden chart data for JS -->
+<div id="chartData"
+     data-pos="{{ results.sentiment_counts.Positive }}"
+     data-neg="{{ results.sentiment_counts.Negative }}"
+     data-neu="{{ results.sentiment_counts.Neutral }}"
+     data-trend-dates="{{ results.trend_dates|join(',') }}"
+     data-trend-pos="{{ results.trend_positive|join(',') }}"
+     data-trend-neg="{{ results.trend_negative|join(',') }}"
+     data-trend-neu="{{ results.trend_neutral|join(',') }}"
+     style="display:none;"></div>
+
+<!-- ================= STYLES ================= -->
+<style>
+
+.review-text-cell {
+    cursor:pointer;
+    color:#2d3436;
+}
+.sm-pos { background:#e0f7e9; color:#00b894; }
+.sm-neg { background:#ffeaea; color:#d63031; }
+.sm-neu { background:#f1f2f6; color:#636e72; }
+#reviewTable tbody tr:hover { background:#f5f6fa; }
+
+/* Tooltip div */
+.review-tooltip {
+    display:none;
+    position:absolute;
+    top:100%;
+    left:0;
+    background:#333;
+    color:#fff;
+    padding:10px 14px;
+    border-radius:8px;
+    font-size:0.85rem;
+    max-width:400px;
+    white-space:normal;
+    z-index:1000;
+}
+
+.review-text-cell:hover .review-tooltip {
+    display:block;
+}
+
+/* Sentiment badges */
+.sm-pos { background:#e0f7e9; color:#00b894; }
+.sm-neg { background:#ffeaea; color:#d63031; }
+.sm-neu { background:#f1f2f6; color:#636e72; }
+
+#reviewTable tbody tr:hover { background:#f5f6fa; }
+#reviewTable { overflow-x:auto; }
+</style>
+
+<!-- ================= SCRIPTS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+        const modal = document.getElementById('reviewModal');
+    const modalText = document.getElementById('modalText');
+    const modalSentiment = document.getElementById('modalSentiment');
+    const closeModal = document.getElementById('closeModal');
+
+    document.querySelectorAll('.review-text-cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+            const text = cell.dataset.review;
+            const sentiment = cell.dataset.sentiment;
+            modalText.innerText = text;
+            modalSentiment.innerText = sentiment + " Review";
+            modalSentiment.style.color = sentiment === "Positive" ? '#00b894' : sentiment === "Negative" ? '#d63031' : '#636e72';
+            modal.style.display = 'flex';
+        });
+    });
+
+    closeModal.addEventListener('click', () => { modal.style.display = 'none'; });
+    window.addEventListener('click', e => { if(e.target==modal) modal.style.display='none'; });
+
+});
+
+
+    const chartData = document.getElementById('chartData');
+    const pos = Number(chartData.dataset.pos);
+    const neg = Number(chartData.dataset.neg);
+    const neu = Number(chartData.dataset.neu);
+
+    const trendDates = chartData.dataset.trendDates.split(',');
+    const trendPos = chartData.dataset.trendPos.split(',').map(Number);
+    const trendNeg = chartData.dataset.trendNeg.split(',').map(Number);
+    const trendNeu = chartData.dataset.trendNeu.split(',').map(Number);
+
+    const colors = {Positive:'#00b894', Negative:'#d63031', Neutral:'#b2bec3'};
+    const dimColor = '#e0e0e0';
+    let currentFilter = 'All';
+
+    // Pie chart
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    const pieChart = new Chart(pieCtx,{
+        type:'doughnut',
+        data:{
+            labels:['Positive','Negative','Neutral'],
+            datasets:[{ data:[pos, neg, neu], backgroundColor:[colors.Positive, colors.Negative, colors.Neutral], hoverOffset:10 }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            cutout:'65%',
+            plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, padding:20 }}},
+            onClick:(evt,elements)=>{
+                if(!elements.length) return;
+                const label = pieChart.data.labels[elements[0].index];
+                currentFilter = (currentFilter === label) ? 'All' : label;
+                updateTable();
+            }
+        }
+    });
+
+    // Trend chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx,{
+        type:'line',
+        data:{
+            labels: trendDates,
+            datasets:[
+                { label:'Positive', data:trendPos, borderColor:colors.Positive, fill:false, tension:0.2 },
+                { label:'Negative', data:trendNeg, borderColor:colors.Negative, fill:false, tension:0.2 },
+                { label:'Neutral', data:trendNeu, borderColor:colors.Neutral, fill:false, tension:0.2 }
+            ]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{ legend:{ position:'bottom' }},
+            scales:{ y:{ beginAtZero:true } }
+        }
+    });
+
+    const resetBtn = document.getElementById('showAllBtn');
+
+    function updateTable(){
+        pieChart.data.datasets[0].backgroundColor =
+            ['Positive','Negative','Neutral'].map(label=>(currentFilter==='All'||label===currentFilter)?colors[label]:dimColor);
+        pieChart.update();
+
+        document.querySelectorAll('.review-row').forEach(row=>{
+            const sentiment = row.dataset.sentiment;
+            row.style.display = (currentFilter==='All'||sentiment===currentFilter)?'':'none';
+        });
+        resetBtn.style.display = (currentFilter==='All')?'none':'inline-block';
+    }
+    resetBtn.addEventListener('click', ()=>{ currentFilter='All'; updateTable(); });
+
+    // Tooltip color
+    document.querySelectorAll('.review-text-cell').forEach(cell=>{
+        const tooltip = cell.querySelector('.review-tooltip');
+        tooltip.innerText = cell.dataset.review;
+        const s = cell.dataset.sentiment;
+        tooltip.style.backgroundColor = colors[s] || '#333';
+    });
+
+
+
+</script>
+{% endblock %}
+
+
+
+app
+import os
+import re
+from datetime import datetime
+import pandas as pd
+import nltk
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy # type: ignore
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer # type: ignore
+
+# -------------------- FLASK APP --------------------
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_strong_secret_key'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+db = SQLAlchemy(app)
+
+# -------------------- LOGIN --------------------
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# -------------------- NLTK SETUP --------------------
+nltk.download('punkt', quiet=True)
+nltk.download('stopwords', quiet=True)
+nltk.download('wordnet', quiet=True)
+nltk.download('omw-1.4', quiet=True)
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+
+# -------------------- USER MODEL --------------------
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True)
+    password = db.Column(db.String(200))
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# -------------------- ANALYSIS HISTORY MODEL --------------------
+class AnalysisHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    filename = db.Column(db.String(255))
+    overall_sentiment = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Create tables
+with app.app_context():
+    db.create_all()
+
+# -------------------- SENTIMENT --------------------
+vader = SentimentIntensityAnalyzer()
+
+def clean_data(text):
+    if not isinstance(text, str):
+        return ""
+    text = re.sub(r'[^a-zA-Z0-9\s.,!?\'"]', '', text)
+    return " ".join(text.split()).strip()
+
+def preprocess_text(text):
+    if not text or pd.isna(text):
+        return ""
+    text = text.lower()
+    text = re.sub(r'[^a-z\s]', '', text)
+    try:
+        words = [lemmatizer.lemmatize(w) for w in text.split() if w not in stop_words]
+    except Exception:
+        words = [w for w in text.split() if w not in stop_words]
+    return " ".join(words).strip()
+
+def ml_sentiment(text):
+    score = vader.polarity_scores(text)['compound']
+    if score >= 0.05:
+        return 'Positive'
+    elif score <= -0.05:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+def analyze_sentiment(df):
+    neg_words = {'bad','worst','poor','terrible','horrible','waste','hate','disappointed','cheap'}
+    pos_words = {'good','great','excellent','amazing','love','perfect','nice','beautiful','best'}
+
+    sentiments = []
+    sentiment_scores = []
+
+    for text in df['preprocessed_review']:
+        words = set(text.split())
+        if words & neg_words:
+            sentiments.append('Negative')
+            sentiment_scores.append(-1)
+        elif words & pos_words:
+            sentiments.append('Positive')
+            sentiment_scores.append(1)
+        else:
+            sentiments.append('Neutral')
+            sentiment_scores.append(0)
+
+    df['sentiment'] = sentiments
+    df['sentiment_score'] = sentiment_scores
+
+    counts = df['sentiment'].value_counts().to_dict()
+    total = len(df)
+    pos = counts.get('Positive', 0)
+    neg = counts.get('Negative', 0)
+    neu = counts.get('Neutral', 0)
+    pos_percent = round((pos / total) * 100, 2) if total else 0
+
+    if neg / total > 0.25:
+        recommendation = "Not Recommended"
+    elif pos_percent > 75:
+        recommendation = "Highly Recommended"
+    else:
+        recommendation = "Needs Improvement"
+
+    # Create the results dictionary **first**
+    results = {
+        "total_reviews": total,
+        "sentiment_counts": {"Positive": pos, "Negative": neg, "Neutral": neu},
+        "positive_percent": pos_percent,
+        "recommendation": recommendation
+    }
+
+    # ---------------- TREND DATA ----------------
+    # Use index as x-axis
+    df['index'] = range(1, len(df) + 1)
+    trend_positive = df['sentiment'].eq('Positive').astype(int).cumsum().tolist()
+    trend_negative = df['sentiment'].eq('Negative').astype(int).cumsum().tolist()
+    trend_neutral = df['sentiment'].eq('Neutral').astype(int).cumsum().tolist()
+    trend_dates = df['index'].tolist()
+
+    # Add trend data to results
+    results['trend_dates'] = trend_dates
+    results['trend_positive'] = trend_positive
+    results['trend_negative'] = trend_negative
+    results['trend_neutral'] = trend_neutral
+
+    return results, df
+
+
+# -------------------- ROUTES --------------------
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET','POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if User.query.filter_by(username=username).first():
+            flash("Username already exists")
+            return redirect(url_for('register'))
+        user = User(username=username, password=generate_password_hash(password))
+        db.session.add(user)
+        db.session.commit()
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET','POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('dashboard'))
+        flash("Invalid login")
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    history = AnalysisHistory.query.filter_by(user_id=current_user.id).order_by(AnalysisHistory.created_at.desc()).all()
+    history_count = len(history)
+    return render_template('dashboard.html', history=history, history_count=history_count)
+
+@app.route('/upload', methods=['POST'])
+@login_required
+def upload_file():
+    file = request.files.get('csv_file')
+    if not file or file.filename == "":
+        flash("No file selected")
+        return redirect(url_for('dashboard'))
+
+    try:
+        df = pd.read_csv(file, encoding='utf-8', on_bad_lines='skip')
+    except Exception as e:
+        flash(f"Error reading CSV: {e}")
+        return redirect(url_for('dashboard'))
+
+    df.columns = df.columns.str.strip()
+    possible_cols = ['Review_Text', 'Review Text', 'review_body', 'text', 'Review', 'Body', 'Comments']
+    col = next((c for c in possible_cols if c in df.columns), None)
+
+    if not col:
+        flash("Review column not found. Use 'Review_Text'.")
+        return redirect(url_for('dashboard'))
+
+    df = df.rename(columns={col: 'Review_Text'})
+    df = df.dropna(subset=['Review_Text'])
+    df['Review_Text'] = df['Review_Text'].apply(clean_data)
+    df = df[df['Review_Text'] != ""]
+    df['preprocessed_review'] = df['Review_Text'].apply(preprocess_text)
+
+    results, df = analyze_sentiment(df)
+    df['ml_sentiment'] = df['Review_Text'].apply(ml_sentiment)
+
+    # Save analysis history in DB
+    overall_sentiment = max(results['sentiment_counts'], key=results['sentiment_counts'].get)
+    history_entry = AnalysisHistory(user_id=current_user.id, filename=file.filename, overall_sentiment=overall_sentiment)
+    db.session.add(history_entry)
+    db.session.commit()
+
+    # Save CSV
+    output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'analysis_report.csv')
+    df.to_csv(output_path, index=False)
+
+    return render_template('analysis_report.html', results=results, review_data=df.to_dict('records'), filename=file.filename)
+
+@app.route('/download_report')
+@login_required
+def download_report():
+    return send_file(os.path.join(app.config['UPLOAD_FOLDER'], 'analysis_report.csv'), as_attachment=True)
+
+@app.route('/view_result/<int:id>')
+@login_required
+def view_result(id):
+    # Get the analysis history item or 404 if not found
+    history_item = AnalysisHistory.query.get_or_404(id)
+
+    # Ensure only the owner can view
+    if history_item.user_id != current_user.id:
+        flash("Access Denied")
+        return redirect(url_for('dashboard'))
+
+    # Load the CSV report (if it exists)
+    csv_path = os.path.join(app.config['UPLOAD_FOLDER'], 'analysis_report.csv')
+    if os.path.exists(csv_path):
+        df = pd.read_csv(csv_path)
+        review_data = df.to_dict('records')
+
+        # Recalculate results for the template
+        counts = df['sentiment'].value_counts().to_dict()
+        total = len(df)
+        pos = counts.get('Positive', 0)
+        neg = counts.get('Negative', 0)
+        neu = counts.get('Neutral', 0)
+        pos_percent = round((pos / total) * 100, 2) if total else 0
+
+        if neg / total > 0.25:
+            recommendation = "Not Recommended"
+        elif pos_percent > 75:
+            recommendation = "Highly Recommended"
+        else:
+            recommendation = "Needs Improvement"
+
+        results = {
+            "total_reviews": total,
+            "sentiment_counts": {"Positive": pos, "Negative": neg, "Neutral": neu},
+            "positive_percent": pos_percent,
+            "recommendation": recommendation,
+            "dominant_sentiment": max(counts, key=counts.get)
+        }
+    else:
+        review_data = []
+        results = {
+            "total_reviews": 0,
+            "sentiment_counts": {"Positive": 0, "Negative": 0, "Neutral": 0},
+            "positive_percent": 0,
+            "recommendation": "No Data",
+            "dominant_sentiment": "Neutral"
+        }
+
+    return render_template(
+        'analysis_report.html',
+        results=results,
+        review_data=review_data,
+        filename=history_item.filename
+    )
+@app.route('/history')
+@login_required
+def history():
+    # Get analysis history for the current user
+    history_items = AnalysisHistory.query.filter_by(user_id=current_user.id).order_by(AnalysisHistory.created_at.desc()).all()
+    
+    # Prepare extra fields for template
+    history_list = []
+    for item in history_items:
+        csv_path = os.path.join(app.config['UPLOAD_FOLDER'], 'analysis_report.csv')
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+            counts = df['sentiment'].value_counts().to_dict()
+            total = len(df)
+            pos = counts.get('Positive', 0)
+            pos_percent = round((pos / total) * 100, 2) if total else 0
+            if pos_percent > 75:
+                recommendation = "Highly Recommended"
+            elif pos_percent < 25:
+                recommendation = "Not Recommended"
+            else:
+                recommendation = "Needs Improvement"
+        else:
+            total = 0
+            pos_percent = 0
+            recommendation = "No Data"
+
+        history_list.append({
+            "filename": item.filename,
+            "time": item.created_at.strftime('%d %b %Y, %I:%M %p'),
+            "total_reviews": total,
+            "positive_percent": pos_percent,
+            "recommendation": recommendation
+        })
+
+    return render_template('history.html', history=history_list)
+
+
+
+
+
+
+# -------------------- RUN --------------------
+if __name__ == "__main__":
+    app.run(debug=True)

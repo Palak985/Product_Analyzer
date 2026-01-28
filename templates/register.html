@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}Create Account{% endblock %}
+
+{% block content %}
+<div style="min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 40px 20px;">
+    
+    <div style="position: relative; width: 100%; max-width: 900px;">
+        <!-- Glow effect behind card -->
+        <div style="position: absolute; inset: -30px; background: linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(0, 184, 148, 0.15)); border-radius: 50px; filter: blur(50px); z-index: -1;"></div>
+        
+        <!-- Glass Card -->
+        <div style="background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 24px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); display: grid; grid-template-columns: 1fr 1fr;">
+            
+            <!-- Left Side - Visual -->
+            <div style="background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(0, 184, 148, 0.1)); padding: 45px; display: flex; flex-direction: column; border-right: 1px solid rgba(108, 92, 231, 0.1);">
+                
+                <!-- Brand -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 30px;">
+                    <div style="width: 45px; height: 45px;">
+                        <svg viewBox="0 0 48 48" style="width: 100%; height: 100%;">
+                            <circle cx="24" cy="24" r="6" fill="url(#coreGrad2)"/>
+                            <circle cx="24" cy="24" r="10" stroke="url(#pulseGrad2)" stroke-width="1" fill="none" opacity="0.5"/>
+                            <path d="M24 8L24 14M24 34L24 40M8 24L14 24M34 24L40 24" stroke="url(#lineGrad2)" stroke-width="1.5" stroke-linecap="round"/>
+                            <defs>
+                                <linearGradient id="pulseGrad2" x1="0" y1="0" x2="48" y2="48">
+                                    <stop stop-color="#6c5ce7"/>
+                                    <stop offset="1" stop-color="#00b894"/>
+                                </linearGradient>
+                                <linearGradient id="lineGrad2" x1="0" y1="0" x2="48" y2="48">
+                                    <stop stop-color="#6c5ce7"/>
+                                    <stop offset="1" stop-color="#00b894"/>
+                                </linearGradient>
+                                <radialGradient id="coreGrad2" cx="0.5" cy="0.5" r="0.5">
+                                    <stop stop-color="#6c5ce7"/>
+                                    <stop offset="1" stop-color="#00b894"/>
+                                </radialGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; color: #2d3436; font-weight: 700; font-size: 1.1rem;">Product Review Analyzer</h3>
+                        <p style="margin: 0; color: #636e72; font-size: 0.8rem;">AI-Powered Sentiment Analysis</p>
+                    </div>
+                </div>
+                
+                <!-- Radar Visual -->
+                <div style="flex: 1; min-height: 250px; position: relative; display: flex; align-items: center; justify-content: center;">
+                    <canvas id="radarCanvas" style="width: 100%; height: 100%;"></canvas>
+                    <div style="position: absolute; bottom: 10px; left: 10px; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #636e72;">
+                        <span style="width: 8px; height: 8px; background: #00b894; border-radius: 50%; animation: blink 1.5s infinite;"></span>
+                        Live data processing...
+                    </div>
+                </div>
+                
+                <!-- Features -->
+                <div style="margin-top: 25px;">
+                    <div style="display: flex; align-items: center; gap: 12px; color: #636e72; font-size: 0.9rem; margin-bottom: 12px;">
+                        <i class="fas fa-check-circle" style="color: #00b894;"></i>
+                        AI-powered sentiment analysis
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; color: #636e72; font-size: 0.9rem; margin-bottom: 12px;">
+                        <i class="fas fa-check-circle" style="color: #00b894;"></i>
+                        Real-time review tracking
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; color: #636e72; font-size: 0.9rem; margin-bottom: 12px;">
+                        <i class="fas fa-check-circle" style="color: #00b894;"></i>
+                        Custom product dashboards
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; color: #636e72; font-size: 0.9rem;">
+                        <i class="fas fa-check-circle" style="color: #00b894;"></i>
+                        Competitive insights
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Side - Form -->
+            <div style="padding: 45px;">
+                <div style="margin-bottom: 30px;">
+                    <h2 style="margin: 0; color: #2d3436; font-size: 1.7rem; font-weight: 700;">Create Account</h2>
+                    <p style="color: #636e72; margin-top: 8px; font-size: 0.9rem;">Join thousands of brands analyzing customer feedback</p>
+                </div>
+
+                <form action="{{ url_for('register') }}" method="POST" id="regForm">
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #2d3436; font-size: 0.85rem;">Username</label>
+                        <div style="position: relative;">
+                            <i class="fas fa-user" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b2bec3;"></i>
+                            <input type="text" name="username" required placeholder="Choose a username"
+                                style="width: 100%; padding: 13px 13px 13px 42px; border: 1px solid rgba(108, 92, 231, 0.2); border-radius: 10px; box-sizing: border-box; outline: none; transition: 0.3s; background: rgba(255, 255, 255, 0.7); font-size: 0.9rem;"
+                                onfocus="this.style.borderColor='#6c5ce7'; this.style.boxShadow='0 0 0 3px rgba(108, 92, 231, 0.1)';"
+                                onblur="this.style.borderColor='rgba(108, 92, 231, 0.2)'; this.style.boxShadow='none';">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #2d3436; font-size: 0.85rem;">I am a...</label>
+                        <select name="role" style="width: 100%; padding: 13px; border: 1px solid rgba(108, 92, 231, 0.2); border-radius: 10px; outline: none; background: rgba(255, 255, 255, 0.7); font-size: 0.9rem; cursor: pointer;"
+                            onfocus="this.style.borderColor='#6c5ce7'; this.style.boxShadow='0 0 0 3px rgba(108, 92, 231, 0.1)';"
+                            onblur="this.style.borderColor='rgba(108, 92, 231, 0.2)'; this.style.boxShadow='none';">
+                            <option value="Analyst">Data Analyst (Upload & View)</option>
+                            <option value="Viewer">Viewer (Read Only)</option>
+                            <option value="Admin">Administrator</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #2d3436; font-size: 0.85rem;">Password</label>
+                        <div style="position: relative;">
+                            <i class="fas fa-lock" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b2bec3;"></i>
+                            <input type="password" name="password" id="password" required placeholder="Create strong password"
+                                style="width: 100%; padding: 13px 42px 13px 42px; border: 1px solid rgba(108, 92, 231, 0.2); border-radius: 10px; box-sizing: border-box; outline: none; transition: 0.3s; background: rgba(255, 255, 255, 0.7); font-size: 0.9rem;"
+                                onfocus="this.style.borderColor='#6c5ce7'; this.style.boxShadow='0 0 0 3px rgba(108, 92, 231, 0.1)';"
+                                onblur="this.style.borderColor='rgba(108, 92, 231, 0.2)'; this.style.boxShadow='none';">
+                            <i class="fas fa-eye" id="togglePass" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #b2bec3; cursor: pointer;"></i>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(108, 92, 231, 0.05); padding: 15px; border-radius: 10px; margin-bottom: 22px; font-size: 0.8rem; border: 1px solid rgba(108, 92, 231, 0.1);">
+                        <div id="rule-len" style="color: #d63031; margin-bottom: 6px; transition: 0.3s;">
+                            <i class="far fa-circle icon" style="margin-right: 8px;"></i> At least 8 characters
+                        </div>
+                        <div id="rule-num" style="color: #d63031; margin-bottom: 6px; transition: 0.3s;">
+                            <i class="far fa-circle icon" style="margin-right: 8px;"></i> Contains a number
+                        </div>
+                        <div id="rule-cap" style="color: #d63031; margin-bottom: 6px; transition: 0.3s;">
+                            <i class="far fa-circle icon" style="margin-right: 8px;"></i> Contains uppercase letter
+                        </div>
+                        <div id="rule-sym" style="color: #d63031; transition: 0.3s;">
+                            <i class="far fa-circle icon" style="margin-right: 8px;"></i> Contains special char (@$!%*?&)
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" disabled 
+                        style="width: 100%; padding: 15px; background: #b2bec3; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: not-allowed; transition: 0.3s; font-size: 0.95rem;">
+                        Create Account
+                    </button>
+
+                    <p style="text-align: center; margin-top: 22px; font-size: 0.85rem; color: #636e72;">
+                        Already have an account? <a href="{{ url_for('login') }}" style="color: #6c5ce7; text-decoration: none; font-weight: 600;">Login</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+    
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+        div[style*="border-right: 1px solid"] {
+            display: none !important;
+        }
+    }
+</style>
+
+<script>
+    // Radar Canvas Animation
+    (function() {
+        const canvas = document.getElementById('radarCanvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+        }
+        
+        const dataPoints = Array.from({ length: 20 }, (_, i) => ({
+            angle: (i * Math.PI * 2) / 20,
+            radius: 0.3 + Math.random() * 0.4,
+            opacity: 0.3 + Math.random() * 0.7,
+            speed: 0.5 + Math.random() * 1.5
+        }));
+        
+        function draw(time) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = Math.min(canvas.width, canvas.height) * 0.4;
+            
+            // Draw rings
+            for (let i = 1; i <= 4; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, (maxRadius * i) / 4, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(108, 92, 231, ${0.12 - i * 0.02})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            // Draw radial lines
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI) / 4;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + Math.cos(angle) * maxRadius, centerY + Math.sin(angle) * maxRadius);
+                ctx.strokeStyle = 'rgba(108, 92, 231, 0.08)';
+                ctx.stroke();
+            }
+            
+            // Draw sweep
+            const sweepAngle = (time * 0.001) % (Math.PI * 2);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, maxRadius, sweepAngle, sweepAngle + Math.PI / 4);
+            ctx.closePath();
+            const gradient = ctx.createConicGradient(sweepAngle, centerX, centerY);
+            gradient.addColorStop(0, 'rgba(108, 92, 231, 0.3)');
+            gradient.addColorStop(0.1, 'rgba(108, 92, 231, 0.1)');
+            gradient.addColorStop(0.2, 'rgba(108, 92, 231, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Draw data points
+            dataPoints.forEach((point, i) => {
+                const pulse = 0.5 + Math.sin(time * 0.002 * point.speed + i) * 0.5;
+                const r = point.radius * maxRadius;
+                const x = centerX + Math.cos(point.angle + time * 0.0002) * r;
+                const y = centerY + Math.sin(point.angle + time * 0.0002) * r;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 184, 148, ${point.opacity * pulse})`;
+                ctx.fill();
+            });
+            
+            // Center dot
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#6c5ce7';
+            ctx.fill();
+            
+            requestAnimationFrame(draw);
+        }
+        
+        resize();
+        draw(0);
+        window.addEventListener('resize', resize);
+    })();
+
+    // Password Toggle
+    const passInput = document.getElementById('password');
+    const submitBtn = document.getElementById('submitBtn');
+    const togglePass = document.getElementById('togglePass');
+
+    togglePass.addEventListener('click', () => {
+        const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passInput.setAttribute('type', type);
+        togglePass.classList.toggle('fa-eye-slash');
+    });
+
+    // Real-time Validation
+    passInput.addEventListener('input', () => {
+        const val = passInput.value;
+        const rules = {
+            len: val.length >= 8,
+            num: /\d/.test(val),
+            cap: /[A-Z]/.test(val),
+            sym: /[!@#$%^&*(),.?":{}|<>]/.test(val)
+        };
+
+        let allValid = true;
+
+        for (const [key, valid] of Object.entries(rules)) {
+            const el = document.getElementById('rule-' + key);
+            const icon = el.querySelector('.icon');
+            
+            if (valid) {
+                el.style.color = '#00b894';
+                icon.className = 'fas fa-check-circle icon';
+                icon.style.marginRight = '8px';
+            } else {
+                el.style.color = '#d63031';
+                icon.className = 'far fa-circle icon';
+                icon.style.marginRight = '8px';
+                allValid = false;
+            }
+        }
+
+        if (allValid) {
+            submitBtn.disabled = false;
+            submitBtn.style.background = 'linear-gradient(135deg, #6c5ce7, #00b894)';
+            submitBtn.style.cursor = 'pointer';
+            submitBtn.style.boxShadow = '0 4px 15px rgba(108, 92, 231, 0.3)';
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.style.background = '#b2bec3';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.style.boxShadow = 'none';
+        }
+    });
+</script>
+{% endblock %}

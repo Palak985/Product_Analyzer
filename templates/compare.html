@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Compare Products{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px; margin:40px auto; padding:0 20px;">
+
+    <div style="text-align:center; margin-bottom:40px;">
+        <h1 style="color:#2d3436;">Product Comparison Engine</h1>
+        <p style="color:#636e72;">Select two products to analyze them side-by-side.</p>
+    </div>
+
+    <div style="background:white; padding:30px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.05); margin-bottom:40px;">
+        <form method="POST" action="{{ url_for('compare_products') }}" style="display:flex; gap:20px; align-items:flex-end;">
+            
+            <div style="flex:1;">
+                <label style="display:block; font-weight:600; margin-bottom:8px;">Product A</label>
+                <select name="product1" required style="width:100%; padding:12px; border:1px solid #dfe6e9; border-radius:10px;">
+                    {% for p in products %}
+                    <option value="{{ p.id }}" {% if comparison and p.id == p1.id %}selected{% endif %}>
+                        {{ p.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="font-size:1.5rem; color:#b2bec3; padding-bottom:12px; font-weight:bold;">VS</div>
+
+            <div style="flex:1;">
+                <label style="display:block; font-weight:600; margin-bottom:8px;">Product B</label>
+                <select name="product2" required style="width:100%; padding:12px; border:1px solid #dfe6e9; border-radius:10px;">
+                    {% for p in products %}
+                    <option value="{{ p.id }}" {% if comparison and p.id == p2.id %}selected{% endif %}>
+                        {{ p.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" style="padding:12px 30px; background:#0984e3; color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer;">
+                Compare
+            </button>
+        </form>
+    </div>
+
+    {% if comparison %}
+    <div style="display:flex; gap:30px;">
+        
+        <div style="flex:1; background:white; padding:30px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.05); border-top:5px solid #6c5ce7; text-align:center;">
+            <h2>{{ p1.name }}</h2>
+            <div style="font-size:3rem; font-weight:800; color:#6c5ce7; margin:20px 0;">{{ s1[0] }}%</div>
+            <div style="color:#636e72; font-weight:600;">Positive Sentiment</div>
+            <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+            <div style="display:flex; justify-content:space-around;">
+                <div style="color:#d63031;"><strong>{{ s1[1] }}%</strong> Neg</div>
+                <div style="color:#b2bec3;"><strong>{{ s1[2] }}%</strong> Neu</div>
+            </div>
+            <a href="{{ url_for('view_report', product_id=p1.id) }}" style="display:block; margin-top:20px; color:#6c5ce7; text-decoration:none; font-weight:600;">View Full Report</a>
+        </div>
+
+        <div style="flex:1; background:white; padding:30px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.05); border-top:5px solid #00b894; text-align:center;">
+            <h2>{{ p2.name }}</h2>
+            <div style="font-size:3rem; font-weight:800; color:#00b894; margin:20px 0;">{{ s2[0] }}%</div>
+            <div style="color:#636e72; font-weight:600;">Positive Sentiment</div>
+            <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+            <div style="display:flex; justify-content:space-around;">
+                <div style="color:#d63031;"><strong>{{ s2[1] }}%</strong> Neg</div>
+                <div style="color:#b2bec3;"><strong>{{ s2[2] }}%</strong> Neu</div>
+            </div>
+            <a href="{{ url_for('view_report', product_id=p2.id) }}" style="display:block; margin-top:20px; color:#00b894; text-decoration:none; font-weight:600;">View Full Report</a>
+        </div>
+        
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

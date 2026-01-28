@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Processing{% endblock %}
+{% block content %}
+<div style="max-width:700px; margin:80px auto; text-align:center; font-family: 'Inter', sans-serif;">
+    <h2 style="color:#2d3436; margin-bottom:10px;">AI Analysis Engine Running</h2>
+    <p style="color:#636e72;">Orchestrating data pipeline and neural inference...</p>
+
+    <div style="margin:40px 0; text-align:left; background:white; padding:40px; border-radius:15px; box-shadow:0 15px 35px rgba(0,0,0,0.1);">
+        
+        <div id="step1" class="process-step" style="opacity:0.3;">
+            <div class="step-icon">1</div>
+            <div class="step-info"><strong>Data Ingestion</strong><br><small>Reading CSV & Validating</small></div>
+            <i class="fas fa-check-circle step-check"></i>
+        </div>
+        <div id="step2" class="process-step" style="opacity:0.3;">
+            <div class="step-icon">2</div>
+            <div class="step-info"><strong>NLP Pre-processing</strong><br><small>Tokenization & Cleaning</small></div>
+            <i class="fas fa-check-circle step-check"></i>
+        </div>
+        <div id="step3" class="process-step" style="opacity:0.3;">
+            <div class="step-icon">3</div>
+            <div class="step-info"><strong>Sentiment Inference</strong><br><small>VADER Model Analysis</small></div>
+            <i class="fas fa-check-circle step-check"></i>
+        </div>
+        <div id="step4" class="process-step" style="opacity:0.3;">
+            <div class="step-icon">4</div>
+            <div class="step-info"><strong>Trend Aggregation</strong><br><small>Time-series mapping</small></div>
+            <i class="fas fa-check-circle step-check"></i>
+        </div>
+        <div id="step5" class="process-step" style="opacity:0.3;">
+            <div class="step-icon">5</div>
+            <div class="step-info"><strong>Finalizing Report</strong><br><small>Saving results</small></div>
+            <i class="fas fa-spinner fa-spin step-spinner" style="display:none; color:#6c5ce7;"></i>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .process-step { display: flex; align-items: center; margin-bottom: 25px; transition: opacity 0.5s ease; }
+    .step-icon { width: 35px; height: 35px; background: #dfe6e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-weight: bold; color: #636e72; }
+    .step-info small { color: #b2bec3; }
+    .step-check { margin-left: auto; color: #00b894; display: none; font-size: 1.2rem; }
+    .step-active .step-icon { background: #6c5ce7; color: white; }
+    .step-active { opacity: 1 !important; }
+</style>
+
+<script>
+    function activate(id) { document.getElementById(id).classList.add('step-active'); }
+    function check(id) { document.getElementById(id).querySelector('.step-check').style.display = 'block'; }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => { activate('step1'); }, 500);
+        setTimeout(() => { check('step1'); activate('step2'); }, 1500);
+        setTimeout(() => { check('step2'); activate('step3'); }, 2800);
+        setTimeout(() => { check('step3'); activate('step4'); }, 4000);
+        setTimeout(() => { 
+            check('step4'); activate('step5'); 
+            document.querySelector('#step5 .step-spinner').style.display = 'block';
+            
+            fetch('/api/process_data', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') { window.location.href = data.redirect; } 
+                else { alert('Error: ' + data.message); }
+            });
+        }, 5500);
+    });
+</script>
+{% endblock %}

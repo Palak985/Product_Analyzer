@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div style="max-width:1200px; margin:40px auto; padding:0 20px;">
+    
+    <!-- Hero Card with Glassmorphism -->
+    <div style="position: relative; margin-bottom: 40px;">
+        <div style="position: absolute; inset: -10px; background: linear-gradient(135deg, rgba(108, 92, 231, 0.3), rgba(0, 184, 148, 0.3)); border-radius: 34px; filter: blur(25px); z-index: -1;"></div>
+        <div style="background: linear-gradient(135deg, rgba(108, 92, 231, 0.9), rgba(162, 155, 254, 0.9)); backdrop-filter: blur(10px); color:white; padding:35px; border-radius:24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 12px 40px rgba(108, 92, 231, 0.25); border: 1px solid rgba(255, 255, 255, 0.2);">
+            <div>
+                <h2 style="margin:0; font-size:2rem; letter-spacing:-0.5px;">Command Center</h2>
+                <p style="opacity:0.85; margin:8px 0 0; font-size:1rem;">Real-time global sentiment overview</p>
+            </div>
+            <div style="display:flex; gap:50px; text-align:right;">
+                <div>
+                    <div style="font-size:2.5rem; font-weight:800; line-height:1;">{{ total_rev }}</div>
+                    <div style="font-size:0.85rem; opacity:0.8; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Reviews Analysed</div>
+                </div>
+                <div>
+                    <div style="font-size:1.4rem; font-weight:700; line-height:1.2;">{{ top_prod[0] }}</div>
+                    <div style="font-size:0.85rem; opacity:0.8; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Highest Rated ({{ top_prod[1] | round(1) }}%)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+        <div>
+            <h2 style="color:#2d3436; margin:0; font-size:1.75rem;">Project Portfolio</h2>
+            <p style="color:#b2bec3; margin:5px 0 0;">Manage and explore your analysis history</p>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center;">
+            
+            <a href="{{ url_for('market_intelligence') }}" style="background: rgba(45, 52, 54, 0.9); backdrop-filter: blur(10px); color:white; padding:12px 22px; border-radius:12px; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:8px; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid rgba(255, 255, 255, 0.1);"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';">
+                <i class="fas fa-chart-line"></i> Market Hub
+            </a>
+
+            <a href="{{ url_for('compare_products') }}" style="background: rgba(9, 132, 227, 0.9); backdrop-filter: blur(10px); color:white; padding:12px 22px; border-radius:12px; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:8px; transition: 0.3s; box-shadow: 0 4px 15px rgba(9, 132, 227, 0.25); border: 1px solid rgba(255, 255, 255, 0.1);"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(9, 132, 227, 0.35)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(9, 132, 227, 0.25)';">
+                <i class="fas fa-balance-scale"></i> Compare
+            </a>
+
+            <a href="{{ url_for('peer_analyses') }}" style="background: linear-gradient(135deg, #764ba2, #667eea); backdrop-filter: blur(10px); color:white; padding:12px 22px; border-radius:12px; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:8px; transition: 0.3s; box-shadow: 0 4px 15px rgba(118, 75, 162, 0.25); border: 1px solid rgba(255, 255, 255, 0.1);"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(118, 75, 162, 0.35)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(118, 75, 162, 0.25)';">
+                <i class="fas fa-users"></i> Peer Analysts
+            </a>
+
+            {% if current_user.role == 'Analyst' %}
+            <button onclick="document.getElementById('uploadModal').style.display='flex'" style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color:white; border:none; padding:12px 22px; border-radius:12px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:8px; transition: 0.3s; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.25);"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(108, 92, 231, 0.35)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(108, 92, 231, 0.25)';">
+                <i class="fas fa-file-csv"></i> CSV
+            </button>
+            <button onclick="document.getElementById('urlModal').style.display='flex'" style="background: linear-gradient(135deg, #00b894, #55efc4); color:white; border:none; padding:12px 22px; border-radius:12px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:8px; transition: 0.3s; box-shadow: 0 4px 15px rgba(0, 184, 148, 0.25);"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0, 184, 148, 0.35)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 184, 148, 0.25)';">
+                <i class="fas fa-globe"></i> URL
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Search Box with Glassmorphism -->
+    <div style="margin-bottom:40px;">
+        <div style="position:relative;">
+            <i class="fas fa-search" style="position:absolute; left:20px; top:18px; color:#b2bec3;"></i>
+            <input type="text" id="searchBox" placeholder="Search by product name..." 
+                style="width:100%; padding:15px 15px 15px 50px; border:1px solid rgba(108, 92, 231, 0.15); border-radius:16px; font-size:1rem; outline:none; transition:0.3s; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); box-shadow:0 4px 20px rgba(0,0,0,0.02);" 
+                onfocus="this.style.borderColor='#6c5ce7'; this.style.boxShadow='0 4px 25px rgba(108, 92, 231, 0.15), 0 0 0 3px rgba(108, 92, 231, 0.1)';" 
+                onblur="this.style.borderColor='rgba(108, 92, 231, 0.15)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.02)';">
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    {% if products %}
+    <div id="productGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:30px;">
+        {% for p in products %}
+        <div class="product-card" style="background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius:20px; padding:30px; box-shadow:0 10px 30px rgba(0,0,0,0.04); position:relative; border:1px solid rgba(108, 92, 231, 0.1); transition:0.3s;" 
+            onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 15px 40px rgba(108, 92, 231, 0.15)'; this.style.borderColor='rgba(108, 92, 231, 0.2)';" 
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.04)'; this.style.borderColor='rgba(108, 92, 231, 0.1)';">
+            
+            {% if current_user.role == 'Analyst' or current_user.role == 'Admin' %}
+            <a href="{{ url_for('delete_product', product_id=p.id) }}" onclick="return confirm('Permanently delete this project?');" style="position:absolute; top:25px; right:25px; color:#dfe6e9; transition:0.3s;" title="Delete" onmouseover="this.style.color='#ff7675';" onmouseout="this.style.color='#dfe6e9';">
+                <i class="fas fa-trash-alt"></i>
+            </a>
+            {% endif %}
+
+            <div style="width:56px; height:56px; background: linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(0, 184, 148, 0.15)); border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:24px; color:#6c5ce7; font-size:1.5rem;">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+
+            <h3 style="margin:0 0 8px; color:#2d3436; font-size:1.3rem; line-height:1.4;" class="p-name">{{ p.name }}</h3>
+            <p style="color:#b2bec3; font-size:0.9rem; margin-bottom:25px; display:flex; align-items:center; gap:6px;">
+                <i class="far fa-calendar-alt"></i> Analysed on {{ p.created_at.strftime('%b %d, %Y') }}
+            </p>
+
+            <a href="{{ url_for('view_report', product_id=p.id) }}" style="display:block; text-align:center; padding:14px; background: rgba(108, 92, 231, 0.08); color:#6c5ce7; text-decoration:none; border-radius:12px; font-weight:700; transition:0.3s;" 
+                onmouseover="this.style.background='linear-gradient(135deg, #6c5ce7, #00b894)'; this.style.color='white';" 
+                onmouseout="this.style.background='rgba(108, 92, 231, 0.08)'; this.style.color='#6c5ce7';">
+                Access Intelligence Report
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:80px 40px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border-radius:24px; border:2px dashed rgba(108, 92, 231, 0.2);">
+        <div style="font-size:4rem; color:#dfe6e9; margin-bottom:20px;"><i class="fas fa-folder-open"></i></div>
+        <h3 style="color:#2d3436; margin:0;">No Data Found</h3>
+        <p style="color:#b2bec3; margin:10px 0 0;">Start your first analysis using CSV or a Live URL to see results here.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Upload Modal with Glassmorphism -->
+<div id="uploadModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(8px);">
+    <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); padding:45px; border-radius:24px; width:480px; max-width:90%; position:relative; box-shadow:0 30px 60px rgba(0,0,0,0.2); border: 1px solid rgba(108, 92, 231, 0.1);">
+        <span onclick="document.getElementById('uploadModal').style.display='none'" style="position:absolute; top:25px; right:25px; cursor:pointer; font-size:1.5rem; color:#b2bec3; transition: 0.3s;" onmouseover="this.style.color='#6c5ce7'" onmouseout="this.style.color='#b2bec3'"><i class="fas fa-times"></i></span>
+        <h2 style="margin-top:0; color:#2d3436; font-size:1.8rem;">Analyse Dataset</h2>
+        <p style="color:#636e72; margin-bottom:30px;">Upload a CSV containing customer reviews for processing.</p>
+        
+        <form action="{{ url_for('initiate_process') }}" method="POST" enctype="multipart/form-data">
+            <label style="display:block; font-weight:600; color:#2d3436; margin-bottom:8px;">Product Identification</label>
+            <input type="text" name="product_name" required placeholder="e.g. Wireless Headphones V2" style="width:100%; padding:14px; margin-bottom:20px; border:1px solid rgba(108, 92, 231, 0.2); border-radius:12px; outline:none; background: rgba(255, 255, 255, 0.8); transition: 0.3s;"
+                onfocus="this.style.borderColor='#6c5ce7'; this.style.boxShadow='0 0 0 3px rgba(108, 92, 231, 0.1)';"
+                onblur="this.style.borderColor='rgba(108, 92, 231, 0.2)'; this.style.boxShadow='none';">
+            
+            <label style="display:block; font-weight:600; color:#2d3436; margin-bottom:8px;">Select Dataset (.csv)</label>
+            <input type="file" name="csv_file" accept=".csv" required style="width:100%; padding:12px; margin-bottom:25px; border:2px dashed #6c5ce7; border-radius:12px; background: rgba(108, 92, 231, 0.05); color:#6c5ce7; cursor:pointer;">
+            
+            <input type="url" name="source_link" placeholder="Source URL (optional)" style="width:100%; padding:14px; margin-bottom:30px; border:1px solid rgba(108, 92, 231, 0.2); border-radius:12px; outline:none; background: rgba(255, 255, 255, 0.8);">
+            
+            <button type="submit" style="width:100%; padding:16px; background: linear-gradient(135deg, #6c5ce7, #00b894); color:white; border:none; border-radius:12px; font-weight:700; cursor:pointer; font-size:1.1rem; box-shadow:0 8px 20px rgba(108, 92, 231, 0.3); transition: 0.3s;"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 30px rgba(108, 92, 231, 0.4)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(108, 92, 231, 0.3)';">
+                Launch AI Analysis
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- URL Modal with Glassmorphism -->
+<div id="urlModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(8px);">
+    <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); padding:45px; border-radius:24px; width:480px; max-width:90%; position:relative; box-shadow:0 30px 60px rgba(0,0,0,0.2); border: 1px solid rgba(0, 184, 148, 0.1);">
+        <span onclick="document.getElementById('urlModal').style.display='none'" style="position:absolute; top:25px; right:25px; cursor:pointer; font-size:1.5rem; color:#b2bec3; transition: 0.3s;" onmouseover="this.style.color='#00b894'" onmouseout="this.style.color='#b2bec3'"><i class="fas fa-times"></i></span>
+        <h2 style="margin-top:0; color:#2d3436; font-size:1.8rem;">Live Web Scraper</h2>
+        <p style="color:#636e72; margin-bottom:30px;">Input a product URL to extract and analyse live customer feedback.</p>
+        
+        <form action="{{ url_for('analyze_url') }}" method="POST">
+            <label style="display:block; font-weight:600; color:#2d3436; margin-bottom:8px;">Live Source URL</label>
+            <input type="text" name="url" placeholder="Paste Amazon/Flipkart or Tech Review URL" required style="width:100%; padding:14px; margin-bottom:30px; border:1px solid rgba(0, 184, 148, 0.2); border-radius:12px; outline:none; background: rgba(255, 255, 255, 0.8); transition: 0.3s;"
+                onfocus="this.style.borderColor='#00b894'; this.style.boxShadow='0 0 0 3px rgba(0, 184, 148, 0.1)';"
+                onblur="this.style.borderColor='rgba(0, 184, 148, 0.2)'; this.style.boxShadow='none';">
+            
+            <button type="submit" style="width:100%; padding:16px; background: linear-gradient(135deg, #00b894, #55efc4); color:white; border:none; border-radius:12px; font-weight:700; cursor:pointer; font-size:1.1rem; box-shadow:0 8px 20px rgba(0, 184, 148, 0.3); transition: 0.3s;"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 30px rgba(0, 184, 148, 0.4)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(0, 184, 148, 0.3)';">
+                Initiate Extraction
+            </button>
+        </form>
+    </div>
+</div>
+<a href="{{ url_for('public_market') }}" class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-medium transition-all hover:scale-105 shadow-lg shadow-indigo-500/20" 
+   style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+    </svg>
+    Public View
+</a>
+<script>
+    // Real-time Dashboard Search Logic
+    document.getElementById('searchBox').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let cards = document.querySelectorAll('.product-card');
+        cards.forEach(card => {
+            let name = card.querySelector('.p-name').innerText.toLowerCase();
+            card.style.display = name.includes(filter) ? "" : "none";
+        });
+    });
+</script>
+{% endblock %}

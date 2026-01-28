@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary: #6c5ce7;
+    --primary-hover: #5a4bd8;
+    --secondary: #a29bfe;
+    --dark: #2d3436;
+    --text-grey: #636e72;
+    --bg-light: #f9f9fc;
+    --white: #ffffff;
+    --success: #00b894;
+    --danger: #d63031;
+    --shadow: 0 10px 30px rgba(108, 92, 231, 0.1);
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-light);
+    margin: 0;
+    color: var(--dark);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Navbar */
+nav {
+    background-color: var(--white);
+    padding: 15px 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--dark);
+    margin-left: 25px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: 0.2s;
+}
+
+.nav-links a:hover { color: var(--primary); }
+
+/* Buttons & Forms */
+.btn-primary {
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: var(--shadow);
+    border: 1px solid #f0f0f0;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    font-family: inherit;
+    transition: 0.3s;
+    box-sizing: border-box; /* Fixes padding overflow */
+}
+
+input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+/* Badges */
+.badge-pos { background: #e0f7e9; color: var(--success); padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; }
+.badge-neg { background: #ffeaea; color: var(--danger); padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; }
+.badge-neu { background: #f1f2f6; color: var(--text-grey); padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; }

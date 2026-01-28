@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}Report - {{ p.name }}{% endblock %}
+
+{% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+    /* LAYOUT */
+    .report-wrapper { display: flex; gap: 30px; max-width: 1400px; margin: 40px auto; padding: 0 30px; }
+    .report-sidebar { width: 350px; display: flex; flex-direction: column; gap: 20px; }
+    .main-content { flex: 1; display: flex; flex-direction: column; gap: 25px; }
+    
+    .summary-card, .chart-card { background: #fff; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .chart-box { position: relative; height: 320px; width: 100%; }
+
+    .key-badge { background: #f1f2f6; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; margin: 5px; display: inline-block; }
+    .suspicious-flag { background: #d63031; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; margin-left: 5px; }
+    
+    .forecast-up { color: #00b894; font-weight: bold; }
+    .forecast-down { color: #d63031; font-weight: bold; }
+
+    /* FILTER BUTTON STYLES */
+    .filter-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+    .filter-btn { border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; opacity: 0.6; transition: 0.2s; }
+    .filter-btn:hover { opacity: 1; transform: scale(1.05); }
+    .filter-btn.active { opacity: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .btn-all { background: #2d3436; color: white; }
+    .btn-pos { background: #e0f7e9; color: #00b894; }
+    .btn-neg { background: #ffeaea; color: #d63031; }
+    .btn-neu { background: #f1f2f6; color: #e1b12c; }
+    
+    /* PROGRESS BAR COLORS */
+    .aspect-bar-bg { background: #f1f2f6; height: 10px; border-radius: 5px; }
+    .aspect-bar-fill { height: 100%; border-radius: 5px; }
+    .aspect-bar-high { background: #00b894; }
+    .aspect-bar-med { background: #fdcb6e; }
+    .aspect-bar-low { background: #d63031; }
+    
+    /* SENTIMENT BADGE */
+    .sentiment-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+    .sentiment-pos-badge { background: #e0f7e9; color: #00b894; }
+    .sentiment-neg-badge { background: #ffeaea; color: #d63031; }
+    .sentiment-neu-badge { background: #fff3cd; color: #e1b12c; }
+    
+    /* PIE CHART CIRCLE */
+    .pie-circle {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    
+    .pie-inner {
+        width: 110px;
+        height: 110px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="report-wrapper" id="reportContent">
+    <aside class="report-sidebar">
+        <div class="summary-card" style="text-align:center;">
+            <h5 style="color:#636e72; text-transform:uppercase; font-size:0.85rem;">Overall Score</h5>
+            <h2 style="margin: 10px 0 30px;">
+                {% if pos_pct > 75 %}Highly Recommended
+                {% elif neg_pct > 25 %}Not Recommended
+                {% else %}Mixed Feedback{% endif %}
+            </h2>
+            
+            <div style="cursor:pointer;" onclick="toggleFilter('Positive')">
+                <div class="pie-circle" id="sentimentPie">
+                    <div class="pie-inner">
+                        <span style="font-size:1.8rem; font-weight:800; color:#6c5ce7;">{{ pos_pct | int }}%</span>
+                        <span style="font-size:0.8rem; color:#636e72;">Positive</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top:25px; padding-top:20px; border-top:1px solid #eee;">
+                <h5 style="margin:0 0 5px; color:#636e72;">AI Trend Forecast</h5>
+                <div style="font-size:1.2rem;">
+                    Reputation is <span class="{{ 'forecast-up' if 'Improving' in forecast.direction else 'forecast-down' }}">{{ forecast.direction }}</span>
+                </div>
+                <small style="color:#b2bec3;">Based on linear regression of recent data</small>
+            </div>
+
+            {% if current_user.role == 'Analyst' or current_user.role == 'Admin' %}
+            <div style="margin-top:25px; padding-top:20px; border-top:1px solid #eee;">
+                <h5 style="margin:0 0 10px; color:#636e72;">Share with Peers</h5>
+                <button id="shareToggleBtn" onclick="toggleSharing()" style="width:100%; padding:12px; background: linear-gradient(135deg, #667eea, #764ba2); color:white; border:none; border-radius:12px; font-weight:600; cursor:pointer; transition:0.3s;">
+                    <span id="shareToggleText">📤 Share Analysis</span>
+                </button>
+                <small id="shareStatus" style="color:#b2bec3; display:block; margin-top:8px; text-align:center;">{% if a.is_shared %}Shared with peer analysts{% else %}Hidden from peers{% endif %}</small>
+            </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <button onclick="generatePDF()" style="width:100%; padding:15px; margin-bottom:10px; background:#2d3436; color:white; border:none; border-radius:12px; font-weight:600; cursor:pointer;">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </button>
+            <a href="{{ url_for('download_report', product_id=p.id) }}" style="display:block; text-align:center; padding:15px; margin-bottom:10px; background:#6c5ce7; color:white; border-radius:12px; text-decoration:none; font-weight:600;">
+                <i class="fas fa-file-csv"></i> Download CSV
+            </a>
+            {% if p.source_link %}
+            <a href="{{ p.source_link }}" target="_blank" style="display:block; text-align:center; padding:15px; margin-bottom:10px; background:#00b894; color:white; border-radius:12px; text-decoration:none; font-weight:600;">
+                <i class="fas fa-link"></i> View Source
+            </a>
+            {% endif %}
+            <a href="{{ url_for('dashboard') }}" style="display:block; text-align:center; padding:15px; background:#dfe6e9; color:#636e72; border-radius:12px; text-decoration:none; font-weight:600;">Back to Dashboard</a>
+        </div>
+    </aside>
+
+    <section class="main-content">
+        <div class="chart-card" style="border-left: 5px solid #6c5ce7;">
+            <h3 style="margin-top:0; color:#6c5ce7;"><i class="fas fa-robot"></i> AI Executive Summary</h3>
+            <div style="line-height:1.6;">{{ a.ai_verdict | safe }}</div>
+        </div>
+
+        <div style="display:flex; gap:25px; flex-wrap:wrap;">
+            <div class="chart-card" style="flex:1;">
+                <h4>Deep Aspect Analysis</h4>
+                {% if aspects %}
+                    {% for key, val in aspects.items() %}
+                    <div style="margin-bottom:15px;">
+                        <div style="display:flex; justify-content:space-between; font-weight:600; margin-bottom:5px;"><span>{{ key }}</span><span>{{ val }}% Pos</span></div>
+                        <div class="aspect-bar-bg"><div class="aspect-bar-fill {% if val > 70 %}aspect-bar-high{% elif val > 40 %}aspect-bar-med{% else %}aspect-bar-low{% endif %}" id="aspect-{{ loop.index }}" data-width="{{ val }}"></div></div>
+                    </div>
+                    {% endfor %}
+                {% else %}<p>No aspect data.</p>{% endif %}
+            </div>
+            <div class="chart-card" style="flex:1.5;">
+                <h4>Customer Voice</h4>
+                {% if a.wordcloud_b64 %}<img src="data:image/png;base64,{{ a.wordcloud_b64 }}" style="width:100%; max-height:250px; object-fit:contain;">{% endif %}
+            </div>
+        </div>
+
+        <div style="display:flex; gap:25px; flex-wrap:wrap;">
+            <div class="chart-card" style="flex:1;"><h4>Sentiment Split</h4><div class="chart-box"><canvas id="pieChart"></canvas></div></div>
+            <div class="chart-card" style="flex:1;"><h4>Trend</h4><div class="chart-box"><canvas id="trendChart"></canvas></div></div>
+        </div>
+
+        <div class="chart-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;">Review Explorer</h3>
+                
+                <div class="filter-group" style="margin:0;">
+                    <button class="filter-btn btn-all active" onclick="resetFilter()">Show All</button>
+                    <button class="filter-btn btn-pos" onclick="toggleFilter('Positive')">Positive</button>
+                    <button class="filter-btn btn-neg" onclick="toggleFilter('Negative')">Negative</button>
+                    <button class="filter-btn btn-neu" onclick="toggleFilter('Neutral')">Neutral</button>
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                    <thead><tr style="border-bottom:2px solid #eee; text-align:left;"><th style="padding:15px;">Date</th><th>Review Snippet</th><th>Sentiment</th></tr></thead>
+                    <tbody id="reviewsBody">
+                        {% for r in reviews %}
+                        <tr class="review-row" data-sentiment="{{ r.sentiment }}" style="border-bottom:1px solid #eee; transition: background 0.2s;">
+                            <td style="padding:15px; color:#888;">{{ r.review_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ r.clean_text[:60] }}... {% if r.is_suspicious %}<span class="suspicious-flag">SUSPICIOUS</span>{% endif %}</td>
+                            <td><span class="sentiment-badge {% if r.sentiment=='Positive' %}sentiment-pos-badge{% elif r.sentiment=='Negative' %}sentiment-neg-badge{% else %}sentiment-neu-badge{% endif %}">{{ r.sentiment }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // PDF Generation
+    function generatePDF() {
+        const element = document.getElementById('reportContent');
+        const opt = {
+            margin:       0.5,
+            filename:     '{{ p.name }}_Report.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+
+    // Chart Data - Extracted from Jinja2 template into JSON
+    const chartDataStr = {{ {'pos': a.pos_count, 'neg': a.neg_count, 'neu': a.neu_count, 'trend': trend} | tojson }};
+    const chartData = chartDataStr;
+    const pos = chartData.pos;
+    const neg = chartData.neg;
+    const neu = chartData.neu;
+    const trendData = chartData.trend;
+    const cPos = '#00b894'; const cNeg = '#d63031'; const cNeu = '#e1b12c'; const cDim = '#dfe6e9';
+    let currentFilter = 'All';
+    
+    // Set pie chart gradient and aspect bars on DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+        const sentimentPie = document.getElementById('sentimentPie');
+        const posPct = parseInt('{{ pos_pct }}');
+        if (sentimentPie) {
+            sentimentPie.style.background = 'conic-gradient(#6c5ce7 ' + posPct + '%, #dfe6e9 0)';
+        }
+        
+        // Set aspect bar widths from data attributes
+        const aspectBars = document.querySelectorAll('[id^="aspect-"]');
+        aspectBars.forEach(function(el) {
+            const width = el.getAttribute('data-width');
+            if (width) {
+                el.style.width = width + '%';
+            }
+        });
+    });
+    
+    // PIE CHART
+    const pieCtx = document.getElementById('pieChart');
+    const pieChart = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: { labels: ['Positive', 'Negative', 'Neutral'], datasets: [{ data: [pos, neg, neu], backgroundColor: [cPos, cNeg, cNeu], borderWidth: 0 }] },
+        options: { 
+            maintainAspectRatio: false, cutout: '70%',
+            onClick: (e, els) => { if (els.length > 0) toggleFilter(pieChart.data.labels[els[0].index]); },
+            onHover: (e, el) => e.native.target.style.cursor = el[0] ? 'pointer' : 'default'
+        }
+    });
+    
+    // TREND CHART
+    const trendCtx = document.getElementById('trendChart');
+    const trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: { 
+            labels: trendData.labels, 
+            datasets: [
+                { label: 'Positive', data: trendData.pos, borderColor: cPos, backgroundColor: cPos, tension:0.4 }, 
+                { label: 'Negative', data: trendData.neg, borderColor: cNeg, backgroundColor: cNeg, tension:0.4 }
+            ] 
+        },
+        options: { 
+            maintainAspectRatio: false,
+            onClick: (e, els) => { if (els.length > 0) toggleFilter(els[0].datasetIndex === 0 ? 'Positive' : 'Negative'); },
+            onHover: (e, el) => e.native.target.style.cursor = el[0] ? 'pointer' : 'default'
+        }
+    });
+
+    // --- FILTER LOGIC ---
+    function toggleFilter(sentiment) {
+        if (currentFilter === sentiment) resetFilter();
+        else applyFilter(sentiment);
+    }
+
+    function applyFilter(sentiment) {
+        currentFilter = sentiment;
+        
+        // 1. Hide/Show Table Rows
+        document.querySelectorAll('.review-row').forEach(row => {
+            if (row.dataset.sentiment === sentiment) { row.style.display = ''; } 
+            else { row.style.display = 'none'; }
+        });
+        
+        // 2. Update Button Active States
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        if (sentiment === 'Positive') document.querySelector('.btn-pos').classList.add('active');
+        if (sentiment === 'Negative') document.querySelector('.btn-neg').classList.add('active');
+        if (sentiment === 'Neutral') document.querySelector('.btn-neu').classList.add('active');
+
+        // 3. Update Charts
+        updateCharts(sentiment);
+    }
+
+    function resetFilter() {
+        currentFilter = 'All';
+        document.querySelectorAll('.review-row').forEach(row => row.style.display = '');
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.btn-all').classList.add('active');
+        updateCharts('All');
+    }
+
+    function updateCharts(sentiment) {
+        // A. Update Pie Chart (Dim unselected)
+        pieChart.data.datasets[0].backgroundColor = pieChart.data.labels.map(l => {
+            if (sentiment === 'All' || l === sentiment) return (l==='Positive'?cPos : l==='Negative'?cNeg : cNeu);
+            return cDim;
+        });
+        pieChart.update();
+
+        // B. Update Trend Chart (Hide Lines)
+        if (sentiment === 'Positive') {
+            trendChart.setDatasetVisibility(0, true);  // Show Positive
+            trendChart.setDatasetVisibility(1, false); // Hide Negative
+        } else if (sentiment === 'Negative') {
+            trendChart.setDatasetVisibility(0, false); // Hide Positive
+            trendChart.setDatasetVisibility(1, true);  // Show Negative
+        } else {
+            // 'All' or 'Neutral' - Show Both Lines
+            trendChart.setDatasetVisibility(0, true);
+            trendChart.setDatasetVisibility(1, true);
+        }
+        trendChart.update();
+    }
+
+    function toggleSharing() {
+        const productId = parseInt('{{ p.id }}');
+        const btn = document.getElementById('shareToggleBtn');
+        const statusText = document.getElementById('shareStatus');
+        
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        
+        fetch(`/api/toggle_analysis_sharing/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const isShared = data.is_shared;
+                if (isShared) {
+                    document.getElementById('shareToggleText').textContent = '📤 Shared with Peers';
+                    statusText.textContent = '✅ Shared with peer analysts';
+                    statusText.style.color = '#00b894';
+                    btn.style.background = 'linear-gradient(135deg, #00b894, #55efc4)';
+                } else {
+                    document.getElementById('shareToggleText').textContent = '🔒 Hidden from Peers';
+                    statusText.textContent = '🔒 Hidden from peer analysts';
+                    statusText.style.color = '#d63031';
+                    btn.style.background = 'linear-gradient(135deg, #d63031, #ff7675)';
+                }
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            alert('Failed to update sharing settings');
+        });
+    }
+</script>
+{% endblock %}

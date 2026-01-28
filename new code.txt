@@ -1,0 +1,837 @@
+{% extends "base.html" %}
+{% block title %}Report - {{ p.name }}{% endblock %}
+
+{% block content %}
+<style>
+    /* LAYOUT & GENERAL */
+    .report-wrapper { display: flex; gap: 30px; max-width: 1400px; margin: 40px auto; padding: 0 30px; }
+    .report-sidebar { width: 350px; display: flex; flex-direction: column; gap: 20px; }
+    .main-content { flex: 1; display: flex; flex-direction: column; gap: 25px; }
+    
+    /* CARDS */
+    .summary-card { background: #fff; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .chart-card { background: #fff; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    
+    /* CHART CONTAINERS */
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .chart-box { position: relative; height: 320px; width: 100%; }
+
+    /* KEYWORDS BADGES */
+    .keyword-cloud { display: flex; flex-wrap: wrap; gap: 10px; }
+    .key-badge {
+        background: #f1f2f6; color: #2d3436; padding: 8px 16px; 
+        border-radius: 20px; font-weight: 600; font-size: 0.9rem;
+        display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .key-count { background: #6c5ce7; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
+
+    /* ASPECT BARS */
+    .aspect-row { margin-bottom: 15px; }
+    .aspect-label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+    .progress-bg { background: #f1f2f6; height: 10px; border-radius: 5px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #00b894; border-radius: 5px; transition: width 1s; }
+
+    /* FILTERS */
+    .filter-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .filter-btn { border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; opacity: 0.6; transition: 0.2s; }
+    .filter-btn:hover { opacity: 1; transform: scale(1.05); }
+    .filter-btn.active { opacity: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .btn-all { background: #2d3436; color: white; }
+    .btn-pos { background: #e0f7e9; color: #00b894; }
+    .btn-neg { background: #ffeaea; color: #d63031; }
+    .btn-neu { background: #f1f2f6; color: #b0b92c; }
+
+    /* TABLE */
+    .review-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .review-table th { text-align: left; padding: 15px; color: #636e72; border-bottom: 2px solid #eee; }
+    .review-table td { padding: 15px; border-bottom: 1px solid #eee; color: #2d3436; }
+    .review-row { cursor: pointer; transition: background 0.2s; }
+    .review-row:hover { background: #f9f9f9; }
+
+    /* BADGES */
+    .badge { padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; }
+    .badge-Positive { background: rgba(0, 184, 148, 0.1); color: #00b894; }
+    .badge-Negative { background: rgba(214, 48, 49, 0.1); color: #d63031; }
+    .badge-Neutral { background: rgba(253, 203, 110, 0.15); color: #e1b12c; }
+    .suspicious-flag { background: #d63031; color: white; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; }
+
+    /* MODAL */
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; backdrop-filter: blur(4px); }
+    .modal-content { background:#fff; margin:5% auto; padding:40px; width:600px; border-radius:20px; position:relative; }
+    .close-btn { position:absolute; top:20px; right:20px; font-size:24px; cursor:pointer; color:#aaa; }
+
+    /* PRINT STYLES */
+    @media print {
+        .report-sidebar, .filter-group, .btn, .navbar { display: none !important; }
+        .report-wrapper { display: block; margin: 0; padding: 0; }
+        .chart-card { box-shadow: none; border: 1px solid #eee; break-inside: avoid; }
+    }
+</style>
+
+<div class="report-wrapper">
+    <aside class="report-sidebar">
+        <div class="summary-card">
+            <h5 style="color:#636e72; text-transform:uppercase; font-size:0.85rem;">Overall Score</h5>
+            <h2 style="margin: 10px 0 30px;">
+                {% if pos_pct > 75 %}Highly Recommended
+                {% elif neg_pct > 25 %}Not Recommended
+                {% else %}Mixed Feedback{% endif %}
+            </h2>
+            
+            <div style="cursor:pointer;" onclick="toggleFilter('Positive')">
+                <div style="width:140px; height:140px; border-radius:50%; background:conic-gradient(#6c5ce7 {{ pos_pct }}%, #dfe6e9 0); margin:0 auto; display:flex; align-items:center; justify-content:center;">
+                    <div style="width:110px; height:110px; background:white; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <span style="font-size:1.8rem; font-weight:800; color:#6c5ce7;">{{ pos_pct | int }}%</span>
+                        <span style="font-size:0.8rem; color:#636e72;">Positive</span>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top:20px; color:#636e72;">Based on <strong>{{ a.total_reviews }}</strong> reviews</p>
+        </div>
+
+        <div>
+            <button onclick="window.print()" style="width:100%; padding:15px; margin-bottom:10px; background:#2d3436; color:white; border:none; border-radius:12px; font-weight:600; cursor:pointer;">
+                <i class="fas fa-print"></i> Print PDF Report
+            </button>
+            <a href="{{ url_for('download_report', product_id=p.id) }}" style="display:block; text-align:center; padding:15px; margin-bottom:10px; background:#6c5ce7; color:white; border-radius:12px; text-decoration:none; font-weight:600;">
+                <i class="fas fa-file-csv"></i> Download CSV
+            </a>
+            <a href="{{ url_for('dashboard') }}" style="display:block; text-align:center; padding:15px; background:#dfe6e9; color:#636e72; border-radius:12px; text-decoration:none; font-weight:600;">Back to Dashboard</a>
+        </div>
+    </aside>
+
+    <section class="main-content">
+        <div class="chart-card" style="border-left: 5px solid #6c5ce7;">
+            <h3 style="margin-top:0; color:#6c5ce7;"><i class="fas fa-robot"></i> AI Executive Summary</h3>
+            <div style="line-height:1.6;">{{ a.ai_verdict | safe }}</div>
+        </div>
+
+        <div style="display:flex; gap:25px; flex-wrap:wrap;">
+            
+            <div class="chart-card" style="flex:1; min-width:300px;">
+                <div class="chart-header">
+                    <h4>Deep Aspect Analysis</h4>
+                </div>
+                {% if aspects %}
+                    {% for key, val in aspects.items() %}
+                    <div class="aspect-row">
+                        <div class="aspect-label">
+                            <span>{{ key }}</span>
+                            <span>{{ val }}% Pos</span>
+                        </div>
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width:{{ val }}%; background: {% if val > 70 %}#00b894{% elif val > 40 %}#fdcb6e{% else %}#d63031{% endif %};"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color:#aaa;">No aspect data available.</p>
+                {% endif %}
+            </div>
+
+            <div class="chart-card" style="flex:1.5; min-width:400px;">
+                <div class="chart-header">
+                    <h4>Customer Voice</h4>
+                </div>
+                {% if a.wordcloud_b64 %}
+                <img src="data:image/png;base64,{{ a.wordcloud_b64 }}" style="width:100%; border-radius:10px; max-height:250px; object-fit:contain;">
+                {% else %}
+                <p style="text-align:center; color:#aaa; padding:50px;">Not enough data</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display:flex; gap:25px; flex-wrap:wrap;">
+            <div class="chart-card" style="flex:1;">
+                <h4>Sentiment Split</h4>
+                <div class="chart-box"><canvas id="pieChart"></canvas></div>
+            </div>
+            <div class="chart-card" style="flex:1;">
+                <h4>Trend</h4>
+                <div class="chart-box"><canvas id="trendChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Review Explorer</h3>
+                <div class="filter-group">
+                    <button class="filter-btn btn-all active" onclick="resetFilter()">Show All</button>
+                    <button class="filter-btn btn-pos" onclick="toggleFilter('Positive')">Positive</button>
+                    <button class="filter-btn btn-neg" onclick="toggleFilter('Negative')">Negative</button>
+                    <button class="filter-btn btn-neu" onclick="toggleFilter('Neutral')">Neutral</button>
+                </div>
+            </div>
+            
+            <div style="overflow-x:auto;">
+                <table class="review-table">
+                    <thead><tr><th>Date</th><th>Review Snippet</th><th>Sentiment</th></tr></thead>
+                    <tbody id="reviewsBody">
+                        {% for r in reviews %}
+                        <tr class="review-row" data-sentiment="{{ r.sentiment }}" data-fulltext="{{ r.clean_text }}" onclick="openModal(this)">
+                            <td style="white-space:nowrap; color:#888;">{{ r.review_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {{ r.clean_text[:60] }}... 
+                                {% if r.is_suspicious %}
+                                    <span class="suspicious-flag"><i class="fas fa-exclamation-triangle"></i> SUSPICIOUS</span>
+                                {% endif %}
+                                <span style="color:#6c5ce7; font-weight:bold; font-size:0.8rem;">Read</span>
+                            </td>
+                            <td><span class="badge badge-{{ r.sentiment }}">{{ r.sentiment }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div id="reviewModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">Review</h3>
+        <p id="modalText" style="line-height:1.6; color:#2d3436; font-size:1.1rem; white-space: pre-wrap;"></p>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const pos = {{ a.pos_count }};
+    const neg = {{ a.neg_count }};
+    const neu = {{ a.neu_count }};
+    const trendData = {{ trend | tojson }};
+    const cPos = '#00b894'; const cNeg = '#d63031'; const cNeu = '#fdcb6e'; const cDim = '#dfe6e9';
+    let currentFilter = 'All';
+
+    // Pie Chart
+    const pieCtx = document.getElementById('pieChart');
+    const pieChart = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{ data: [pos, neg, neu], backgroundColor: [cPos, cNeg, cNeu], borderWidth: 0 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '70%',
+            onClick: (e, els) => { if (els.length > 0) toggleFilter(pieChart.data.labels[els[0].index]); },
+            onHover: (e, el) => e.native.target.style.cursor = el[0] ? 'pointer' : 'default',
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // Trend Chart
+    const trendCtx = document.getElementById('trendChart');
+    const trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendData.labels,
+            datasets: [
+                { label: 'Positive', data: trendData.pos, borderColor: cPos, backgroundColor: cPos, borderWidth: 3, tension: 0.4, pointRadius: 4, fill: false },
+                { label: 'Negative', data: trendData.neg, borderColor: cNeg, backgroundColor: cNeg, borderWidth: 3, tension: 0.4, pointRadius: 4, fill: false }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true }, x: { grid: { display: false } } },
+            onClick: (e, els) => { if (els.length > 0) toggleFilter(els[0].datasetIndex === 0 ? 'Positive' : 'Negative'); },
+            onHover: (e, el) => e.native.target.style.cursor = el[0] ? 'pointer' : 'default',
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    function toggleFilter(sentiment) {
+        if (currentFilter === sentiment) resetFilter();
+        else applyFilter(sentiment);
+    }
+
+    function applyFilter(sentiment) {
+        currentFilter = sentiment;
+        let visible = 0;
+        document.querySelectorAll('.review-row').forEach(row => {
+            if (row.dataset.sentiment === sentiment) { row.style.display = ''; visible++; } 
+            else { row.style.display = 'none'; }
+        });
+        
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        if (sentiment === 'Positive') document.querySelector('.btn-pos').classList.add('active');
+        if (sentiment === 'Negative') document.querySelector('.btn-neg').classList.add('active');
+        if (sentiment === 'Neutral') document.querySelector('.btn-neu').classList.add('active');
+
+        updateCharts(sentiment);
+    }
+
+    function resetFilter() {
+        currentFilter = 'All';
+        document.querySelectorAll('.review-row').forEach(row => row.style.display = '');
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.btn-all').classList.add('active');
+        updateCharts('All');
+    }
+
+    function updateCharts(sentiment) {
+        pieChart.data.datasets[0].backgroundColor = pieChart.data.labels.map(l => {
+            if (sentiment === 'All' || l === sentiment) return (l==='Positive'?cPos : l==='Negative'?cNeg : cNeu);
+            return cDim;
+        });
+        pieChart.update();
+        trendChart.setDatasetVisibility(0, sentiment === 'All' || sentiment === 'Positive');
+        trendChart.setDatasetVisibility(1, sentiment === 'All' || sentiment === 'Negative');
+        trendChart.update();
+    }
+
+    function openModal(row) {
+        document.getElementById('modalText').innerText = row.dataset.fulltext;
+        document.getElementById('modalTitle').innerText = row.dataset.sentiment + " Review";
+        document.getElementById('reviewModal').style.display = 'block';
+    }
+    function closeModal() { document.getElementById('reviewModal').style.display = 'none'; }
+    window.onclick = (e) => { if (e.target == document.getElementById('reviewModal')) closeModal(); }
+</script>
+{% endblock %}
+
+analysis
+
+
+import os
+import re
+import json
+import base64
+import io
+import csv
+import random
+import requests
+import numpy as np # Needed for regression
+from datetime import datetime
+from collections import Counter
+from bs4 import BeautifulSoup
+
+import pandas as pd
+import nltk
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, Response
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy 
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer 
+
+# -------------------- CONFIGURATION --------------------
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'enterprise_grade_secret_2026'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reviews.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+db = SQLAlchemy(app)
+vader = SentimentIntensityAnalyzer()
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# -------------------- NLTK SETUP --------------------
+nltk.download('punkt', quiet=True)
+nltk.download('stopwords', quiet=True)
+from nltk.corpus import stopwords
+stop_words = set(stopwords.words('english'))
+stop_words.update(['product', 'item', 'one', 'it', 'use', 'good', 'bad', 'review', 'buy', 'bought'])
+
+# -------------------- MODELS --------------------
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(50), default="Analyst") 
+
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    source_link = db.Column(db.String(500))
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviews = db.relationship('Review', backref='product', lazy='dynamic', cascade="all, delete-orphan")
+    analysis = db.relationship('AnalysisResult', backref='product', uselist=False, cascade="all, delete-orphan")
+
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    clean_text = db.Column(db.Text)
+    sentiment = db.Column(db.String(20))
+    sentiment_score = db.Column(db.Float)
+    is_suspicious = db.Column(db.Boolean, default=False)
+    review_date = db.Column(db.DateTime, default=datetime.utcnow)
+
+class AnalysisResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    total_reviews = db.Column(db.Integer)
+    pos_count = db.Column(db.Integer)
+    neg_count = db.Column(db.Integer)
+    neu_count = db.Column(db.Integer)
+    ai_verdict = db.Column(db.Text)
+    trend_data_json = db.Column(db.Text)
+    wordcloud_b64 = db.Column(db.Text) 
+    top_keywords_json = db.Column(db.Text)
+    aspects_json = db.Column(db.Text)
+    forecast_json = db.Column(db.Text) # NEW: Prediction Data
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+with app.app_context():
+    db.create_all()
+
+# -------------------- HELPERS --------------------
+def clean_text_pipeline(text):
+    if not isinstance(text, str): return ""
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    text = text.lower().strip()
+    return text
+
+def check_if_suspicious(text):
+    if len(text.split()) < 3: return True
+    if len(set(text.split())) < 2: return True 
+    return False
+
+def analyze_aspects(reviews):
+    aspects = {
+        'Quality': ['quality', 'build', 'material', 'strong', 'durable', 'plastic', 'feel'],
+        'Price': ['price', 'value', 'money', 'cost', 'expensive', 'cheap', 'worth'],
+        'Performance': ['fast', 'slow', 'lag', 'speed', 'battery', 'charge', 'screen', 'display'],
+        'Service': ['service', 'support', 'delivery', 'shipping', 'packaging', 'seller']
+    }
+    scores = {k: {'pos': 0, 'total': 0} for k in aspects}
+    for r in reviews:
+        txt = r.clean_text.lower()
+        label = r.sentiment
+        for aspect, keywords in aspects.items():
+            if any(k in txt for k in keywords):
+                scores[aspect]['total'] += 1
+                if label == 'Positive': scores[aspect]['pos'] += 1
+    final_aspects = {}
+    for k, v in scores.items():
+        if v['total'] > 0: final_aspects[k] = round((v['pos'] / v['total']) * 100)
+        else: final_aspects[k] = 0
+    return json.dumps(final_aspects)
+
+def calculate_forecast(trend_pos):
+    # Simple Linear Regression to predict next point
+    if len(trend_pos) < 2: return json.dumps({'direction': 'Stable', 'confidence': 0})
+    
+    x = np.arange(len(trend_pos))
+    y = np.array(trend_pos)
+    slope, _ = np.polyfit(x, y, 1)
+    
+    direction = "Stable"
+    if slope > 0.5: direction = "Improving 🚀"
+    elif slope < -0.5: direction = "Declining 📉"
+    
+    return json.dumps({'direction': direction, 'slope': round(slope, 2)})
+
+def generate_wordcloud(text_data):
+    if not text_data.strip(): return None
+    wc = WordCloud(width=800, height=400, background_color='white', colormap='viridis').generate(text_data)
+    img = io.BytesIO()
+    wc.to_image().save(img, format='PNG')
+    return base64.b64encode(img.getvalue()).decode('utf-8')
+
+def extract_top_keywords(text_list):
+    all_words = " ".join(text_list).split()
+    filtered_words = [w for w in all_words if w not in stop_words and len(w) > 2]
+    return Counter(filtered_words).most_common(10)
+
+def scrape_url(url):
+    if "demo" in url.lower():
+        return "iPhone 15 Pro", [
+            "The battery life is amazing, easily lasts two days!",
+            "Camera quality is out of this world, low light photos are crisp.",
+            "Overheating issues while charging, very disappointed.",
+            "The titanium finish feels premium but it scratches easily.",
+            "Best phone I've ever owned, totally worth the price.",
+            "Screen refresh rate makes everything feel so smooth.",
+            "Face ID is faster than ever.",
+            "Too expensive for what it offers compared to the previous model.",
+            "I love the new action button, very convenient.",
+            "Customer service was unhelpful when I had display issues."
+        ]
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        title = soup.title.string if soup.title else "Scraped Product"
+        reviews = [p.get_text() for p in soup.find_all('p') if len(p.get_text()) > 20]
+        return title.strip(), reviews[:50]
+    except Exception as e:
+        return None, str(e)
+
+def generate_verdict(name, total, pos, neg, neu):
+    pos_pct = (pos/total)*100 if total > 0 else 0
+    neg_pct = (neg/total)*100 if total > 0 else 0
+    verdict = f"<p>After analyzing <strong>{total:,}</strong> reviews for <em>{name}</em>, our AI algorithms indicate:</p>"
+    if pos_pct > 75: verdict += f"<div style='color:#00b894; font-weight:bold;'>🏆 Market Leader Performance</div><p>With {pos_pct:.1f}% positive sentiment, users are highly satisfied.</p>"
+    elif pos_pct > 50: verdict += f"<div style='color:#0984e3; font-weight:bold;'>📈 Good with Room for Growth</div><p>Majority positive ({pos_pct:.1f}%), but friction points exist.</p>"
+    elif neg_pct > 40: verdict += f"<div style='color:#d63031; font-weight:bold;'>⚠️ Critical Attention Needed</div><p>High negative sentiment ({neg_pct:.1f}%).</p>"
+    else: verdict += f"<div style='color:#fdcb6e; font-weight:bold;'>⚖️ Polarizing Product</div><p>The user base is split.</p>"
+    return verdict
+
+# -------------------- ROUTES --------------------
+
+@app.route('/')
+def index(): return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET','POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            if user.role == 'Admin': return redirect(url_for('admin_panel'))
+            return redirect(url_for('dashboard'))
+        flash("Invalid credentials", "error")
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET','POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form.get('role', 'Analyst')
+        if User.query.filter_by(username=username).first():
+            flash("User exists", "error"); return redirect(url_for('register'))
+        user = User(username=username, password=generate_password_hash(password), role=role)
+        db.session.add(user); db.session.commit()
+        flash("Account created! Please login.", "success"); return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user(); return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    if current_user.role == 'Admin': 
+        return redirect(url_for('admin_panel'))
+    
+    # Logic: Analysts see only their work. Viewers & Admins see everything.
+    if current_user.role == 'Analyst':
+        products = Product.query.filter_by(uploaded_by=current_user.id).order_by(Product.created_at.desc()).all()
+    else:
+        # This covers 'Viewer' - they see all reports from all analysts
+        products = Product.query.order_by(Product.created_at.desc()).all()
+    
+    # Calculate Global Stats for the Command Center
+    all_visible_products = Product.query.all() # Viewers see global stats
+    total_rev = sum(p.analysis.total_reviews for p in all_visible_products if p.analysis)
+    
+    highest = max((p for p in all_visible_products if p.analysis and p.analysis.total_reviews > 0), 
+                  key=lambda x: (x.analysis.pos_count/x.analysis.total_reviews), default=None)
+    
+    top_prod = (highest.name, (highest.analysis.pos_count/highest.analysis.total_reviews)*100) if highest else ("None", 0)
+
+    return render_template('dashboard.html', 
+                         products=products, 
+                         total_rev=total_rev, 
+                         top_prod=top_prod)
+@app.route('/admin_panel')
+@login_required
+def admin_panel():
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
+    users = User.query.all(); all_products = Product.query.count(); all_reviews = Review.query.count()
+    return render_template('admin_panel.html', users=users, p_count=all_products, r_count=all_reviews)
+
+@app.route('/delete_user/<int:id>')
+@login_required
+def delete_user(id):
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
+    user = User.query.get(id)
+    if user: db.session.delete(user); db.session.commit(); flash("User deleted", "success")
+    return redirect(url_for('admin_panel'))
+
+@app.route('/delete_product/<int:product_id>')
+@login_required
+def delete_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    if product.uploaded_by != current_user.id and current_user.role != 'Admin':
+        flash("Unauthorized", "error"); return redirect(url_for('dashboard'))
+    db.session.delete(product); db.session.commit(); flash("Project deleted.", "success")
+    return redirect(url_for('dashboard'))
+
+@app.route('/compare', methods=['GET', 'POST'])
+@login_required
+def compare_products():
+    # Viewers can compare ANY product in the system
+    if current_user.role == 'Analyst':
+        user_products = Product.query.filter_by(uploaded_by=current_user.id).all()
+    else:
+        user_products = Product.query.all()
+    
+    if request.method == 'POST':
+        p1 = Product.query.get(request.form.get('product1'))
+        p2 = Product.query.get(request.form.get('product2'))
+        
+        if not p1 or not p2:
+            flash("Invalid selection", "error")
+            return redirect(url_for('compare_products'))
+
+        a1 = AnalysisResult.query.filter_by(product_id=p1.id).first()
+        a2 = AnalysisResult.query.filter_by(product_id=p2.id).first()
+        
+        def get_stats(a):
+            total = a.total_reviews if a else 0
+            return (0,0,0) if total == 0 else (round(a.pos_count/total*100,1), round(a.neg_count/total*100,1), round(a.neu_count/total*100,1))
+            
+        return render_template('compare.html', products=user_products, comparison=True, p1=p1, p2=p2, s1=get_stats(a1), s2=get_stats(a2))
+        
+    return render_template('compare.html', products=user_products, comparison=False)
+
+@app.route('/initiate_process', methods=['POST'])
+@login_required
+def initiate_process():
+    if current_user.role == 'Viewer': return redirect(url_for('dashboard'))
+    file = request.files.get('csv_file'); product_name = request.form.get('product_name')
+    source_link = request.form.get('source_link')
+    if not file: return redirect(url_for('dashboard'))
+    filename = f"{datetime.now().timestamp()}_{file.filename}"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+    session['processing_file'] = filepath; session['product_name'] = product_name
+    session['source_link'] = source_link
+    return render_template('processing.html') 
+
+@app.route('/analyze_url', methods=['POST'])
+@login_required
+def analyze_url():
+    url = request.form.get('url'); product_name, reviews = scrape_url(url)
+    if not product_name or isinstance(reviews, str) or not reviews:
+        flash("Scraping failed or no text found.", "error"); return redirect(url_for('dashboard'))
+    new_product = Product(name=product_name, source_link=url, uploaded_by=current_user.id)
+    db.session.add(new_product); db.session.commit()
+    return process_reviews_logic(new_product, reviews, product_name)
+
+@app.route('/api/process_data', methods=['POST'])
+@login_required
+def process_data_api():
+    filepath = session.get('processing_file'); p_name = session.get('product_name')
+    p_link = session.get('source_link')
+    try:
+        df = pd.read_csv(filepath, on_bad_lines='skip')
+        cols = [c.lower() for c in df.columns]
+        target = ['review_text', 'review', 'text', 'comment', 'body']
+        col_name = next((df.columns[cols.index(t)] for t in target if t in cols), None)
+        if not col_name: return jsonify({'status': 'error', 'message': 'CSV needs "Review" column'})
+        new_product = Product(name=p_name, source_link=p_link, uploaded_by=current_user.id)
+        db.session.add(new_product); db.session.commit()
+        reviews = df[col_name].dropna().astype(str).tolist()
+        process_reviews_logic(new_product, reviews, p_name)
+        return jsonify({'status': 'success', 'redirect': url_for('view_report', product_id=new_product.id)})
+    except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
+
+def process_reviews_logic(product, reviews, p_name):
+    total, pos, neg, neu = 0, 0, 0, 0
+    review_objects = []; all_cleaned_text = []
+    
+    for txt in reviews:
+        cleaned = clean_text_pipeline(str(txt))
+        if cleaned: all_cleaned_text.append(cleaned)
+        score = vader.polarity_scores(cleaned)['compound']
+        sentiment = 'Neutral'
+        if score >= 0.05: sentiment = 'Positive'; pos += 1
+        elif score <= -0.05: sentiment = 'Negative'; neg += 1
+        else: neu += 1
+        is_sus = check_if_suspicious(cleaned)
+        review_objects.append(Review(product_id=product.id, clean_text=str(txt), sentiment=sentiment, sentiment_score=score, is_suspicious=is_sus))
+        total += 1
+    db.session.bulk_save_objects(review_objects)
+    
+    # Trends (Simulated for Demo / Calculated for Batch)
+    pos_trend = [random.randint(1, 10) for _ in range(min(10, total))]
+    trend_data = {'labels': [f"Pt {i+1}" for i in range(len(pos_trend))], 'pos': pos_trend, 'neg': [random.randint(1, 5) for _ in range(len(pos_trend))]}
+    
+    analysis = AnalysisResult(
+        product_id=product.id, total_reviews=total,
+        pos_count=pos, neg_count=neg, neu_count=neu,
+        ai_verdict=generate_verdict(p_name, total, pos, neg, neu),
+        trend_data_json=json.dumps(trend_data),
+        wordcloud_b64=generate_wordcloud(" ".join(all_cleaned_text)), 
+        top_keywords_json=json.dumps(extract_top_keywords(all_cleaned_text)),
+        aspects_json=analyze_aspects(review_objects),
+        forecast_json=calculate_forecast(pos_trend) # NEW FORECAST
+    )
+    db.session.add(analysis); db.session.commit()
+    if request.path == '/analyze_url': 
+        flash("Analysis Complete!", "success")
+        return redirect(url_for('view_report', product_id=product.id))
+
+@app.route('/report/<int:product_id>')
+@login_required
+def view_report(product_id):
+    product = Product.query.get_or_404(product_id)
+    analysis = AnalysisResult.query.filter_by(product_id=product.id).first()
+    trend, keywords, aspects, forecast = {}, [], {}, {}
+    pos_pct, neg_pct, neu_pct = 0, 0, 0
+    if analysis and analysis.total_reviews > 0:
+        total = analysis.total_reviews
+        pos_pct = round((analysis.pos_count / total) * 100, 1)
+        neg_pct = round((analysis.neg_count / total) * 100, 1)
+        neu_pct = round((analysis.neu_count / total) * 100, 1)
+        trend = json.loads(analysis.trend_data_json)
+        keywords = json.loads(analysis.top_keywords_json) if analysis.top_keywords_json else []
+        aspects = json.loads(analysis.aspects_json) if analysis.aspects_json else {}
+        forecast = json.loads(analysis.forecast_json) if analysis.forecast_json else {'direction': 'Stable', 'slope': 0}
+    reviews = Review.query.filter_by(product_id=product.id).limit(100).all()
+    return render_template('analysis_report.html', p=product, a=analysis, reviews=reviews, pos_pct=pos_pct, neg_pct=neg_pct, neu_pct=neu_pct, trend=trend, keywords=keywords, aspects=aspects, forecast=forecast)
+
+@app.route('/download_report/<int:product_id>')
+@login_required
+def download_report(product_id):
+    product = Product.query.get_or_404(product_id)
+    def generate():
+        data = io.StringIO(); w = csv.writer(data)
+        w.writerow(('Date', 'Review Text', 'Sentiment Score', 'Sentiment Label', 'Spam Flag'))
+        yield data.getvalue(); data.seek(0); data.truncate(0)
+        for r in product.reviews:
+            w.writerow((r.review_date.strftime('%Y-%m-%d'), r.clean_text, r.sentiment_score, r.sentiment, 'SUSPICIOUS' if r.is_suspicious else ''))
+            yield data.getvalue(); data.seek(0); data.truncate(0)
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set('Content-Disposition', 'attachment', filename=f'{product.name}_report.csv')
+    return response
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+app
+
+
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div style="max-width:1200px; margin:40px auto; padding:0 20px;">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+        <div>
+            <h1 style="margin:0; color:#2d3436;">Dashboard</h1>
+            <p style="color:#636e72; margin:5px 0 0; display:flex; align-items:center; gap:10px;">
+                Welcome back, <strong>{{ current_user.username }}</strong>
+                <span style="background:#dfe6e9; color:#636e72; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+                    <i class="fas fa-user-shield" style="margin-right:4px;"></i> {{ current_user.role }}
+                </span>
+            </p>
+        </div>
+        
+        <div style="display:flex; gap:10px;">
+            {% if current_user.role == 'Analyst' %}
+            <a href="{{ url_for('compare_products') }}" 
+                style="background:#0984e3; color:white; border:none; padding:12px 20px; border-radius:10px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:8px; text-decoration:none; box-shadow:0 4px 15px rgba(9, 132, 227, 0.3);">
+                <i class="fas fa-balance-scale"></i> Compare
+            </a>
+
+            <button onclick="document.getElementById('uploadModal').style.display='flex'" 
+                style="background:#6c5ce7; color:white; border:none; padding:12px 20px; border-radius:10px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(108, 92, 231, 0.3);">
+                <i class="fas fa-file-csv"></i> CSV
+            </button>
+
+            <button onclick="document.getElementById('urlModal').style.display='flex'" 
+                style="background:#00b894; color:white; border:none; padding:12px 20px; border-radius:10px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(0, 184, 148, 0.3);">
+                <i class="fas fa-globe"></i> URL
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="margin-bottom:30px;">
+        <input type="text" id="searchBox" placeholder="Search projects..." 
+            style="width:100%; padding:15px; border:1px solid #dfe6e9; border-radius:12px; font-size:1rem; outline:none; box-shadow:0 2px 10px rgba(0,0,0,0.03);">
+    </div>
+
+    {% if products %}
+    <div id="productGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:25px;">
+        {% for p in products %}
+        <div class="product-card" style="background:white; border-radius:15px; padding:25px; box-shadow:0 5px 20px rgba(0,0,0,0.05); position:relative; border:1px solid #f1f2f6;">
+            
+            <a href="{{ url_for('delete_product', product_id=p.id) }}" 
+               onclick="return confirm('Are you sure you want to delete this project?');"
+               style="position:absolute; top:20px; right:20px; color:#b2bec3; transition:0.3s;" title="Delete Project">
+               <i class="fas fa-trash-alt"></i>
+            </a>
+
+            <div style="width:50px; height:50px; background:#e0f7fa; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; color:#00bcd4; font-size:1.5rem;">
+                <i class="fas fa-box-open"></i>
+            </div>
+            
+            <h3 style="margin:0 0 10px; color:#2d3436;" class="p-name">{{ p.name }}</h3>
+            <p style="color:#b2bec3; font-size:0.85rem; margin-bottom:20px;">
+                <i class="far fa-clock"></i> {{ p.created_at.strftime('%b %d, %Y') }}
+            </p>
+            
+            <a href="{{ url_for('view_report', product_id=p.id) }}" 
+               style="display:block; text-align:center; padding:10px; background:#f1f2f6; color:#636e72; text-decoration:none; border-radius:8px; font-weight:600;">
+               View Report
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:60px; background:white; border-radius:20px; border:2px dashed #dfe6e9;">
+        <i class="fas fa-folder-open" style="font-size:3rem; color:#b2bec3; margin-bottom:20px;"></i>
+        <h3 style="color:#636e72;">No Projects Yet</h3>
+        <p style="color:#b2bec3;">Upload a CSV or Paste a URL to start.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<div id="uploadModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div style="background:white; padding:40px; border-radius:20px; width:450px; max-width:90%; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.2);">
+        <span onclick="document.getElementById('uploadModal').style.display='none'" style="position:absolute; top:20px; right:20px; cursor:pointer; font-size:1.5rem; color:#b2bec3;">&times;</span>
+        <h2 style="margin-top:0;">New Project (CSV)</h2>
+        <form action="{{ url_for('initiate_process') }}" method="POST" enctype="multipart/form-data">
+            <input type="text" name="product_name" required placeholder="Product Name" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #dfe6e9; border-radius:8px;">
+            <input type="file" name="csv_file" accept=".csv" required style="width:100%; padding:10px; margin-bottom:15px; border:1px dashed #6c5ce7; border-radius:8px; background:#f8f9fa;">
+            <input type="url" name="source_link" placeholder="Source Link (Optional)" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #dfe6e9; border-radius:8px;">
+            <button type="submit" style="width:100%; padding:14px; background:#6c5ce7; color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer;">Start Analysis</button>
+        </form>
+    </div>
+</div>
+
+<div id="urlModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div style="background:white; padding:40px; border-radius:20px; width:450px; max-width:90%; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.2);">
+        <span onclick="document.getElementById('urlModal').style.display='none'" style="position:absolute; top:20px; right:20px; cursor:pointer; font-size:1.5rem; color:#b2bec3;">&times;</span>
+        <h2 style="margin-top:0;">AI Web Scraper</h2>
+        <form action="{{ url_for('analyze_url') }}" method="POST">
+            <input type="text" name="url" placeholder="Paste URL (or type 'demo')" required style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #dfe6e9; border-radius:8px;">
+            <button type="submit" style="width:100%; padding:14px; background:#00b894; color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer;">Start Live Extraction</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Search Functionality
+    document.getElementById('searchBox').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let cards = document.querySelectorAll('.product-card');
+        
+        cards.forEach(card => {
+            let name = card.querySelector('.p-name').innerText.toLowerCase();
+            if(name.includes(filter)) {
+                card.style.display = "";
+            } else {
+                card.style.display = "none";
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+dashbooard

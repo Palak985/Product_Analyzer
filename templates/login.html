@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div style="min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 40px 20px;">
+    
+    <div style="position: relative; width: 100%; max-width: 420px;">
+        <!-- Glow effect behind card -->
+        <div style="position: absolute; inset: -20px; background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(0, 184, 148, 0.2)); border-radius: 40px; filter: blur(40px); z-index: -1;"></div>
+        
+        <!-- Glass Card -->
+        <div style="background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 24px; padding: 45px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);">
+            
+            <!-- AI Pulse Icon -->
+            <div style="display: flex; justify-content: center; margin-bottom: 25px;">
+                <div style="width: 70px; height: 70px; position: relative;">
+                    <svg viewBox="0 0 48 48" style="width: 100%; height: 100%;">
+                        <circle cx="24" cy="24" r="20" stroke="url(#pulseGrad)" stroke-width="1" fill="none" opacity="0.5" class="pulse-ring"/>
+                        <circle cx="24" cy="24" r="16" stroke="url(#pulseGrad)" stroke-width="0.5" fill="none" opacity="0.3" class="pulse-ring"/>
+                        <path d="M24 8L24 16M24 32L24 40M8 24L16 24M32 24L40 24" stroke="url(#lineGrad)" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M12 12L18 18M30 30L36 36M12 36L18 30M30 18L36 12" stroke="url(#lineGrad)" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+                        <circle cx="24" cy="24" r="6" fill="url(#coreGrad)"/>
+                        <circle cx="24" cy="24" r="8" stroke="url(#pulseGrad)" stroke-width="1" fill="none" opacity="0.7" class="pulse-ring"/>
+                        <circle cx="24" cy="12" r="2" fill="url(#nodeGrad)"/>
+                        <circle cx="24" cy="36" r="2" fill="url(#nodeGrad)"/>
+                        <circle cx="12" cy="24" r="2" fill="url(#nodeGrad)"/>
+                        <circle cx="36" cy="24" r="2" fill="url(#nodeGrad)"/>
+                        <defs>
+                            <linearGradient id="pulseGrad" x1="0" y1="0" x2="48" y2="48">
+                                <stop stop-color="#6c5ce7"/>
+                                <stop offset="1" stop-color="#00b894"/>
+                            </linearGradient>
+                            <linearGradient id="lineGrad" x1="0" y1="0" x2="48" y2="48">
+                                <stop stop-color="#6c5ce7"/>
+                                <stop offset="0.5" stop-color="#63b3ed"/>
+                                <stop offset="1" stop-color="#00b894"/>
+                            </linearGradient>
+                            <radialGradient id="coreGrad" cx="0.5" cy="0.5" r="0.5">
+                                <stop stop-color="#6c5ce7"/>
+                                <stop offset="1" stop-color="#00b894"/>
+                            </radialGradient>
+                            <radialGradient id="nodeGrad" cx="0.5" cy="0.5" r="0.5">
+                                <stop stop-color="#63b3ed"/>
+                                <stop offset="1" stop-color="#6c5ce7"/>
+                            </radialGradient>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 35px;">
+                <h2 style="margin: 0; color: #2d3436; font-size: 1.8rem; font-weight: 700;">Welcome Back</h2>
+                <p style="color: #636e72; margin-top: 8px; font-size: 0.95rem;">Sign in to Product Review Analyzer</p>
+            </div>
+
+            <form action="{{ url_for('login') }}" method="POST">
+                <div style="margin-bottom: 22px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 10px; color: #2d3436; font-size: 0.9rem;">Username</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-user" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #b2bec3; transition: 0.3s;"></i>
+                        <input type="text" name="username" required placeholder="Enter your username"
+                            style="width: 100%; padding: 14px 14px 14px 45px; border: 1px solid rgba(108, 92, 231, 0.2); border-radius: 12px; box-sizing: border-box; outline: none; transition: 0.3s; background: rgba(255, 255, 255, 0.7); font-size: 0.95rem;"
+                            onfocus="this.style.borderColor='#6c5ce7'; this.style.boxShadow='0 0 0 3px rgba(108, 92, 231, 0.1), 0 0 20px rgba(108, 92, 231, 0.1)'; this.previousElementSibling.style.color='#6c5ce7';"
+                            onblur="this.style.borderColor='rgba(108, 92, 231, 0.2)'; this.style.boxShadow='none'; this.previousElementSibling.style.color='#b2bec3';">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 28px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 10px; color: #2d3436; font-size: 0.9rem;">Password</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-lock" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #b2bec3; transition: 0.3s;"></i>
+                        <input type="password" name="password" id="loginPassword" required placeholder="Enter your password"
+                            style="width: 100%; padding: 14px 45px 14px 45px; border: 1px solid rgba(108, 92, 231, 0.2); border-radius: 12px; box-sizing: border-box; outline: none; transition: 0.3s; background: rgba(255, 255, 255, 0.7); font-size: 0.95rem;"
+                            onfocus="this.style.borderColor='#6c5ce7'; this.style.boxShadow='0 0 0 3px rgba(108, 92, 231, 0.1), 0 0 20px rgba(108, 92, 231, 0.1)';"
+                            onblur="this.style.borderColor='rgba(108, 92, 231, 0.2)'; this.style.boxShadow='none';">
+                        <i class="fas fa-eye" id="toggleLoginPass" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #b2bec3; cursor: pointer; transition: 0.3s;" onmouseover="this.style.color='#6c5ce7'" onmouseout="this.style.color='#b2bec3'"></i>
+                    </div>
+                </div>
+
+                <button type="submit" 
+                    style="width: 100%; padding: 16px; background: linear-gradient(135deg, #6c5ce7, #00b894); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.3s; font-size: 1rem; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);"
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(108, 92, 231, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(108, 92, 231, 0.3)';">
+                    Sign In
+                </button>
+
+                <p style="text-align: center; margin-top: 25px; font-size: 0.9rem; color: #636e72;">
+                    Don't have an account? <a href="{{ url_for('register') }}" style="color: #6c5ce7; text-decoration: none; font-weight: 600; transition: 0.3s;" onmouseover="this.style.color='#00b894'" onmouseout="this.style.color='#6c5ce7'">Sign Up</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .pulse-ring {
+        animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.02); }
+    }
+</style>
+
+<script>
+    document.getElementById('toggleLoginPass').addEventListener('click', function() {
+        const passInput = document.getElementById('loginPassword');
+        const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passInput.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+</script>
+{% endblock %}
