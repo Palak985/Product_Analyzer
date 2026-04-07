@@ -21,6 +21,7 @@ Built as a final year BSc IT project at Usha Pravin Gandhi College of Arts, Scie
 
 ---
 
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
